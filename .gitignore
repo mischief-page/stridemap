@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# Never commit real health data
+*.zip
+export.xml
+export_cda.xml
+apple_health_export/
+data/
+out/

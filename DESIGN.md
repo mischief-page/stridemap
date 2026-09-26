@@ -1,0 +1,60 @@
+# stridemap design
+
+stridemap turns a person's outdoor walks and runs into a single piece of art: every route starts from the same point and spreads out in its true direction, forming a color-graded spider web.
+
+## Pipeline
+
+```
+export.zip ─► parse ─► clean ─► color values ─► anchor ─► squash ─► fit ─► SVG
+             (src/parse)       (src/core)                               (src/render)
+```
+
+1. **Parse** (`src/parse`): stream the Apple Health `export.zip`. The large `export.xml` is read with a streaming XML parser and never loaded whole. Only walking, running and hiking workouts are kept. Each workout's GPX route is read from `workout-routes/`.
+2. **Clean** (`src/core/clean.ts`): drop warm-up fixes at the start of a track until horizontal accuracy is 12 m or better, drop any fix worse than 30 m, and drop jumps faster than 12 m/s.
+3. **Color values** (`src/core/values.ts`): compute a value for every point (see Color below).
+4. **Anchor** (`src/core/layout.ts`): convert each track to meters east (x) and north (y) of its first point. Every workout starts at (0, 0), north is up and east is right, and a kilometer is the same length wherever in the world it was run.
+5. **Squash** (optional): pull long routes inward by raising distance from the anchor to a power (1 = true scale, 0.5 = square root). Direction is unchanged.
+6. **Fit**: choose a bounding box and scale it uniformly onto the canvas, centered.
+7. **Render** (`src/render/svg.ts`): draw the routes as SVG.
+
+## Rules
+
+### Anchoring and direction
+- The beginning of every workout is anchored to the same place on the grid.
+- Each workout follows its GPS track from the anchor: north goes up, south down, east right, west left.
+- Distances are in meters on the ground, so shapes aren't distorted by latitude.
+
+### Fit and centering
+- Default: the box is set so that **95%** of workouts fit fully on each side. The other 5% run off the edge, so one unusually long route doesn't shrink everything else into a dot. This percentile is a setting (50–100; 100 fits everything).
+- Setting: **Squash long routes** (radial exponent, 0.3–1), for people who'd rather keep every route on the canvas.
+- The fitted box is centered on the canvas with padding. The anchor is therefore not necessarily at the exact center.
+
+### Color
+The person picks two colors: **A** (cool) and **B** (hot). Colors are blended in OKLCH so the middle of the scale stays vivid rather than going grey.
+
+Two color modes:
+
+- **Pace**: color changes *along* each route. Pace is taken from the speed the watch recorded (or from distance/time where missing) and smoothed over 20 seconds. Slow is A and fast is B. The scale is clipped to the 5th–95th percentile so a single glitch can't stretch it. Walks and runs share one scale, so walks sit toward A.
+- **How often**: measured in **real-world space**, not in the anchored drawing. The world is split into 15 m cells, and each cell counts the number of *distinct* workouts that passed through it. A street is therefore hot when it was actually visited often, wherever those workouts started. That heat is then painted onto the anchored drawing. To tolerate GPS error, a point takes the busiest cell in its 3×3 neighbourhood. Counts are shown on a log scale from 1 visit (A) to the 99th percentile (B).
+
+### Filters
+- Activity types: runs, walks, hikes.
+- Date range.
+- Indoor workouts and workouts without a GPS route are always excluded.
+- Frequency heat is computed from the filtered set only.
+
+### Rendering
+- Tracks are simplified to 1 px accuracy (Ramer–Douglas–Peucker) at the output size.
+- Segments are grouped into 32 color steps with one `<path>` per step, drawn cool-to-hot so the hottest lines are on top. This keeps the SVG in the hundreds of kilobytes for hundreds of workouts.
+- Blend modes: *glow* (`screen`, for dark backgrounds), *ink* (`multiply`, for light backgrounds), or none.
+
+## Privacy
+- Everything runs locally: in the browser (parsing happens in a Web Worker) or in the CLI. Nothing is uploaded.
+- Anchoring discards absolute location. The output contains only positions relative to each workout's start, scaled to the canvas, so it can't be used to recover coordinates such as a home address. (A distinctive route shape could still be recognisable to someone who knows the area.)
+- Real exports must never be committed. `.gitignore` excludes zips and export files, and tests use synthetic data only.
+
+## Not yet decided / next
+- Embeddable output: a `<script>` + web component or `<iframe>` snippet, in addition to SVG/PNG download.
+- Per-activity pace scales (so walks aren't always at the cool end).
+- Optional smoothing of positions for noisy tracks from older phones.
+- Multi-stop color scales.
