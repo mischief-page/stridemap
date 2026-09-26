@@ -101,7 +101,21 @@ fieldset {
 
 .row label { display: inline-flex; align-items: center; gap: 6px; }
 
-input[type='range'], select { width: 100%; }
+input[type='range'], select, input[type='text'] { width: 100%; }
+
+input[type='text'] {
+  font: inherit;
+  padding: 6px 8px;
+  margin-top: 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.row select { width: auto; }
+
+fieldset:disabled { opacity: 0.45; }
 
 input[type='color'] {
   width: 32px;

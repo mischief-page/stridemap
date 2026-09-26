@@ -1,5 +1,6 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
+import { DEFAULT_LEGEND, escapeXml, renderLegend, type LegendOptions } from './legend';
 import { renderScale, type ScaleStyle, type Units } from './scale';
 
 export type Blend = 'normal' | 'screen' | 'multiply';
@@ -23,6 +24,7 @@ export interface StyleOptions {
   units: Units;
   /** Color of the scale bar or rings and their labels; null picks white or black to suit the background. */
   scaleColor: string | null;
+  legend: LegendOptions;
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
@@ -38,6 +40,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   scale: 'bar',
   units: 'km',
   scaleColor: null,
+  legend: DEFAULT_LEGEND,
 };
 
 /**
@@ -98,18 +101,29 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
     .join('\n');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-<title>stridemap: ${scene.workoutCount} walks and runs</title>
+<title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
 <rect width="100%" height="100%" fill="${style.background}"/>
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate">
 ${body}
 </g>
 ${renderScale(
-  { width: W, height: H, padding: P, pxPerMeter: scale, anchorX: ox, anchorY: oy, radialExponent: scene.radialExponent },
+  {
+    width: W,
+    height: H,
+    padding: P,
+    pxPerMeter: scale,
+    anchorX: ox,
+    anchorY: oy,
+    radialExponent: scene.radialExponent,
+    // Keep the bar out of the legend's way.
+    barSide: style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left',
+  },
   style.scale,
   style.units,
   style.background,
   style.scaleColor,
 )}
+${renderLegend({ width: W, height: H, padding: P, background: style.background }, style.legend, scene.dateRange)}
 </svg>`;
 }
 

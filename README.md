@@ -43,6 +43,8 @@ npm run cli -- ~/Downloads/export.zip --mode frequency --types running --from 20
 
 CLI options: `--mode pace|frequency`, `--types running,walking,hiking`, `--from`/`--to` (dates), `--fit 50..100`, `--squash 0.3..1`, `--color-a`, `--color-b`, `--background`, `--blend screen|multiply|normal`, `--scale bar|rings|off`, `--units km|mi`, `--scale-color` (defaults to white or black to suit the background).
 
+Legend options (the legend appears when any of the first three are given): `--title "…"`, `--name "…"`, `--dates`, `--date-format month|day|year`, `--legend-position top-left|top-center|top-right|bottom-left|bottom-center|bottom-right`, `--legend-font sans|serif|mono|rounded`, `--legend-size 0.5..2`, `--legend-caps`, `--legend-color`, `--legend-backdrop halo|panel|none`.
+
 ## How it works
 
 See [DESIGN.md](DESIGN.md) for the rules and the pipeline.

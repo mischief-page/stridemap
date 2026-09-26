@@ -13,6 +13,13 @@ import { parseArgs } from 'node:util';
 import { buildScene, type ColorMode } from '../src/core/pipeline';
 import { ACTIVITY_TYPES, type ActivityType } from '../src/core/types';
 import { readHealthExport } from '../src/parse/health-export';
+import {
+  DEFAULT_LEGEND,
+  type DateFormat,
+  type LegendBackdrop,
+  type LegendFont,
+  type LegendPosition,
+} from '../src/render/legend';
 import type { ScaleStyle, Units } from '../src/render/scale';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../src/render/svg';
 import { syntheticWorkouts } from '../src/sample/synthetic';
@@ -35,6 +42,16 @@ const { values, positionals } = parseArgs({
     scale: { type: 'string', default: DEFAULT_STYLE.scale },
     units: { type: 'string', default: DEFAULT_STYLE.units },
     'scale-color': { type: 'string' },
+    title: { type: 'string', default: '' },
+    name: { type: 'string', default: '' },
+    dates: { type: 'boolean', default: false },
+    'date-format': { type: 'string', default: DEFAULT_LEGEND.dateFormat },
+    'legend-position': { type: 'string', default: DEFAULT_LEGEND.position },
+    'legend-font': { type: 'string', default: DEFAULT_LEGEND.font },
+    'legend-size': { type: 'string', default: String(DEFAULT_LEGEND.size) },
+    'legend-caps': { type: 'boolean', default: false },
+    'legend-color': { type: 'string' },
+    'legend-backdrop': { type: 'string', default: DEFAULT_LEGEND.backdrop },
   },
 });
 
@@ -74,6 +91,20 @@ const svg = renderSvg(scene, {
   scale: values.scale as ScaleStyle,
   units: values.units as Units,
   scaleColor: values['scale-color'] ?? null,
+  legend: {
+    // The legend appears as soon as there's something to put in it.
+    show: Boolean(values.title || values.name || values.dates),
+    title: values.title,
+    name: values.name,
+    showDates: values.dates,
+    dateFormat: values['date-format'] as DateFormat,
+    position: values['legend-position'] as LegendPosition,
+    font: values['legend-font'] as LegendFont,
+    size: Number(values['legend-size']),
+    uppercaseTitle: values['legend-caps'],
+    color: values['legend-color'] ?? null,
+    backdrop: values['legend-backdrop'] as LegendBackdrop,
+  },
 });
 
 await mkdir(dirname(values.out), { recursive: true });

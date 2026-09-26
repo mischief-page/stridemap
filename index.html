@@ -101,6 +101,60 @@
           <small>When long routes are squashed, the scale is drawn as rings, since a bar can't be accurate.</small>
         </section>
 
+        <section>
+          <h2>Legend</h2>
+          <label class="inline"><input type="checkbox" id="legendShow" /> Show a legend</label>
+          <fieldset id="legendFields" disabled>
+            <label>Title <input type="text" id="legendTitle" placeholder="e.g. Two years of running" /></label>
+            <label>Name <input type="text" id="legendName" placeholder="Your name" /></label>
+            <div class="row">
+              <label><input type="checkbox" id="legendDates" checked /> Dates shown</label>
+              <label>
+                <select id="legendDateFormat" aria-label="Date format">
+                  <option value="month">Jan 2024 – Aug 2025</option>
+                  <option value="day">Jan 3, 2024 – Aug 5, 2025</option>
+                  <option value="year">2024 – 2025</option>
+                </select>
+              </label>
+            </div>
+            <label>Placement
+              <select id="legendPosition">
+                <option value="top-left">Top left</option>
+                <option value="top-center">Top center</option>
+                <option value="top-right">Top right</option>
+                <option value="bottom-left">Bottom left</option>
+                <option value="bottom-center">Bottom center</option>
+                <option value="bottom-right">Bottom right</option>
+              </select>
+            </label>
+            <div class="row">
+              <label>Font
+                <select id="legendFont">
+                  <option value="sans">Sans</option>
+                  <option value="serif">Serif</option>
+                  <option value="mono">Mono</option>
+                  <option value="rounded">Rounded</option>
+                </select>
+              </label>
+              <label>Backdrop
+                <select id="legendBackdrop">
+                  <option value="halo">Halo</option>
+                  <option value="panel">Panel</option>
+                  <option value="none">None</option>
+                </select>
+              </label>
+            </div>
+            <label>Size <output id="legendSizeOut"></output>
+              <input type="range" id="legendSize" min="0.5" max="2" step="0.05" value="1" />
+            </label>
+            <div class="row">
+              <label><input type="checkbox" id="legendCaps" /> Title in capitals</label>
+              <label>Color <input type="color" id="legendColor" /></label>
+              <button type="button" id="legendColorAuto" class="small" hidden>Auto</button>
+            </div>
+          </fieldset>
+        </section>
+
         <section class="row">
           <button type="button" id="downloadSvg" disabled>Download SVG</button>
           <button type="button" id="downloadPng" disabled>Download PNG</button>

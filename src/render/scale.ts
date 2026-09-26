@@ -20,6 +20,8 @@ export interface ScaleFrame {
   anchorX: number;
   anchorY: number;
   radialExponent: number;
+  /** Which bottom corner the scale bar sits in. */
+  barSide: 'left' | 'right';
 }
 
 /** The 1, 2 or 5 × 10ⁿ closest to `value` (compared as ratios). */
@@ -69,7 +71,7 @@ function bar(f: ScaleFrame, units: Units, ink: string, text: string, fontSize: n
   const targetPx = (f.width - 2 * f.padding) / 5;
   const amount = niceRound(targetPx / f.pxPerMeter / METERS_PER[units]);
   const px = amount * METERS_PER[units] * f.pxPerMeter;
-  const x = f.padding;
+  const x = f.barSide === 'left' ? f.padding : r(f.width - f.padding - px);
   const y = f.height - f.padding / 2;
   const tick = fontSize / 2;
   return `<g class="scale">

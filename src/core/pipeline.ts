@@ -32,6 +32,8 @@ export interface Scene {
   /** Carried through so the renderer can draw an accurate distance scale. */
   radialExponent: number;
   workoutCount: number;
+  /** Start times of the first and last workout drawn, or null if none. */
+  dateRange: [number, number] | null;
 }
 
 export function filterWorkouts(workouts: Workout[], filters: Filters): Workout[] {
@@ -47,7 +49,7 @@ export function filterWorkouts(workouts: Workout[], filters: Filters): Workout[]
 
 export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOptions): Scene {
   const selected = filterWorkouts(workouts, filters)
-    .map((w) => ({ id: w.id, track: cleanTrack(w.track as Track) }))
+    .map((w) => ({ id: w.id, start: w.start, track: cleanTrack(w.track as Track) }))
     .filter((w) => w.track.t.length >= 2);
 
   let heat: HeatGrid | null = null;
@@ -71,6 +73,9 @@ export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOp
     domain: colorDomain(tracks, opts.colorMode),
     radialExponent: opts.radialExponent,
     workoutCount: tracks.length,
+    dateRange: selected.length
+      ? [Math.min(...selected.map((w) => w.start)), Math.max(...selected.map((w) => w.start))]
+      : null,
   };
 }
 

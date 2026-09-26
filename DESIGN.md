@@ -56,6 +56,17 @@ So viewers can judge how long routes are, the image carries a distance scale in 
 
 When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale color can be chosen; by default it is white or black depending on how light the background is. Labels always get a halo in the background color.
 
+### Legend
+An optional legend with up to three lines: a **title**, a **name**, and the **dates shown**. The dates are the first and last workout actually drawn, so they follow the filters, formatted as months ("Jan 2024 – Aug 2025"), days or years in the viewer's locale.
+
+Formatting and placement:
+- Placement: top or bottom × left, center or right. Text aligns to its side. If the legend takes the bottom-left corner, the scale bar moves to the bottom right.
+- Font: sans, serif, mono or rounded. Only system fonts, so the single-file page works offline.
+- Size (50–200%), color (automatic white/black to suit the background, or chosen), and the title optionally in spaced capitals.
+- Backdrop: a halo in the background color, a translucent panel, or none. The SVG can't measure text, so the panel width is estimated from the character count.
+
+The title also becomes the SVG's `<title>`. All user text is XML-escaped.
+
 ## Privacy
 - Everything runs locally: in the browser (parsing happens in a Web Worker) or in the CLI. Nothing is uploaded.
 - Anchoring discards absolute location. The output contains only positions relative to each workout's start, scaled to the canvas, so it can't be used to recover coordinates such as a home address. (A distinctive route shape could still be recognisable to someone who knows the area.)

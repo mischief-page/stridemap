@@ -1,5 +1,6 @@
 import { buildScene, type ColorMode } from '../core/pipeline';
 import type { ActivityType, Workout } from '../core/types';
+import type { DateFormat, LegendBackdrop, LegendFont, LegendPosition } from '../render/legend';
 import { inkFor, type ScaleStyle, type Units } from '../render/scale';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../render/svg';
 import { syntheticWorkouts } from '../sample/synthetic';
@@ -52,27 +53,53 @@ function readSettings() {
       blend: $<HTMLSelectElement>('blend').value as Blend,
       scale: $<HTMLSelectElement>('scale').value as ScaleStyle,
       units: $<HTMLSelectElement>('units').value as Units,
-      scaleColor: scaleColorChosen ? input('scaleColor').value : null,
+      scaleColor: scaleColor.chosen ? input('scaleColor').value : null,
+      legend: {
+        show: input('legendShow').checked,
+        title: input('legendTitle').value,
+        name: input('legendName').value,
+        showDates: input('legendDates').checked,
+        dateFormat: $<HTMLSelectElement>('legendDateFormat').value as DateFormat,
+        position: $<HTMLSelectElement>('legendPosition').value as LegendPosition,
+        font: $<HTMLSelectElement>('legendFont').value as LegendFont,
+        size: Number(input('legendSize').value),
+        uppercaseTitle: input('legendCaps').checked,
+        color: legendColor.chosen ? input('legendColor').value : null,
+        backdrop: $<HTMLSelectElement>('legendBackdrop').value as LegendBackdrop,
+      },
     },
   };
 }
 
-// Until someone picks a scale color, it follows the background (white or black).
-let scaleColorChosen = false;
-function syncScaleColor() {
-  if (!scaleColorChosen) input('scaleColor').value = inkFor(input('background').value);
-  $('scaleColorAuto').hidden = !scaleColorChosen;
+/**
+ * A color picker that follows the background (white or black) until someone
+ * picks a color, with an Auto button to go back.
+ */
+function autoColor(pickerId: string, autoButtonId: string) {
+  const state = {
+    chosen: false,
+    sync() {
+      if (!state.chosen) input(pickerId).value = inkFor(input('background').value);
+      $(autoButtonId).hidden = !state.chosen;
+    },
+  };
+  input(pickerId).addEventListener('input', () => {
+    state.chosen = true;
+  });
+  $(autoButtonId).addEventListener('click', () => {
+    state.chosen = false;
+    render();
+  });
+  return state;
 }
-input('scaleColor').addEventListener('input', () => {
-  scaleColorChosen = true;
-});
-$('scaleColorAuto').addEventListener('click', () => {
-  scaleColorChosen = false;
-  render();
-});
+const scaleColor = autoColor('scaleColor', 'scaleColorAuto');
+const legendColor = autoColor('legendColor', 'legendColorAuto');
 
 function updateOutputs() {
-  syncScaleColor();
+  scaleColor.sync();
+  legendColor.sync();
+  $<HTMLFieldSetElement>('legendFields').disabled = !input('legendShow').checked;
+  $('legendSizeOut').textContent = `${Math.round(Number(input('legendSize').value) * 100)}%`;
   $('fitOut').textContent = `${input('fit').value}%`;
   $('squashOut').textContent = input('squash').value;
   $('strokeOut').textContent = input('stroke').value;
