@@ -1,21 +1,60 @@
 /// <reference lib="webworker" />
+import { buildScene, type Filters, type LayoutOptions, type Scene } from '../core/pipeline';
 import type { Workout } from '../core/types';
 import { readHealthExport, type Progress } from '../parse/health-export';
+import { renderSvg, type StyleOptions } from '../render/svg';
+import { syntheticWorkouts } from '../sample/synthetic';
 
-export type WorkerMessage =
+/**
+ * The page's engine. It holds the workouts and does all the heavy work (reading
+ * the export, building the scene, writing the SVG) off the page's main thread,
+ * so the controls stay responsive however many routes there are. Everything
+ * stays on this device.
+ */
+
+export type EngineRequest =
+  | { kind: 'load-file'; file: File }
+  | { kind: 'load-sample' }
+  | { kind: 'render'; seq: number; filters: Filters; layout: LayoutOptions; style: StyleOptions };
+
+export type EngineMessage =
   | { kind: 'progress'; progress: Progress }
-  | { kind: 'done'; workouts: Workout[] }
+  | { kind: 'loaded'; withGps: number; firstStart: number | null; lastStart: number | null }
+  | { kind: 'rendered'; seq: number; svg: string; shown: number; withGps: number }
   | { kind: 'error'; message: string };
 
-// Parsing happens here, off the page's main thread, and entirely on this device.
-self.onmessage = async (event: MessageEvent<File>) => {
-  const post = (msg: WorkerMessage, transfer: Transferable[] = []) => self.postMessage(msg, transfer);
+let workouts: Workout[] = [];
+// Style-only changes (colors, legend, scale…) reuse the last scene.
+let sceneCache: { key: string; scene: Scene } | null = null;
+
+const post = (msg: EngineMessage) => self.postMessage(msg);
+
+function loaded(list: Workout[]) {
+  workouts = list;
+  sceneCache = null;
+  const starts = list.filter((w) => w.track && !w.indoor).map((w) => w.start);
+  post({
+    kind: 'loaded',
+    withGps: starts.length,
+    firstStart: starts.length ? Math.min(...starts) : null,
+    lastStart: starts.length ? Math.max(...starts) : null,
+  });
+}
+
+self.onmessage = async (event: MessageEvent<EngineRequest>) => {
+  const req = event.data;
   try {
-    const workouts = await readHealthExport(event.data, (progress) => post({ kind: 'progress', progress }));
-    const buffers = workouts.flatMap((w) =>
-      w.track ? [w.track.t.buffer, w.track.lat.buffer, w.track.lon.buffer, w.track.speed.buffer, w.track.hAcc.buffer] : [],
-    );
-    post({ kind: 'done', workouts }, buffers as ArrayBuffer[]);
+    if (req.kind === 'load-file') {
+      loaded(await readHealthExport(req.file, (progress) => post({ kind: 'progress', progress })));
+    } else if (req.kind === 'load-sample') {
+      loaded(syntheticWorkouts());
+    } else {
+      const key = JSON.stringify([req.filters, req.layout]);
+      if (sceneCache?.key !== key) sceneCache = { key, scene: buildScene(workouts, req.filters, req.layout) };
+      const { scene } = sceneCache;
+      const withGps = workouts.filter((w) => w.track && !w.indoor).length;
+      post({ kind: 'rendered', seq: req.seq, svg: renderSvg(scene, req.style), shown: scene.workoutCount, withGps });
+    }
   } catch (err) {
     post({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
   }

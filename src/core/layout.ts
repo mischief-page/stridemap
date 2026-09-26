@@ -79,10 +79,29 @@ export function fitBounds(tracks: LocalTrack[], percentile: number): Bounds {
 
 /** Linear-interpolated quantile, q in [0, 1]. */
 export function quantile(values: ArrayLike<number>, q: number): number {
-  const sorted = Array.from(values).filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
-  if (sorted.length === 0) return NaN;
-  const pos = (sorted.length - 1) * q;
-  const lo = Math.floor(pos);
-  const hi = Math.ceil(pos);
-  return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (pos - lo);
+  return quantiles(values, [q])[0]!;
+}
+
+/** Most values that are sorted to find quantiles; larger inputs are evenly sampled. */
+const MAX_QUANTILE_SAMPLE = 200_000;
+
+/**
+ * Several quantiles from one sort. Millions of GPS points are sampled down
+ * first, which changes the answer by a negligible amount and is far faster.
+ */
+export function quantiles(values: ArrayLike<number>, qs: number[]): number[] {
+  const stride = Math.max(1, Math.floor(values.length / MAX_QUANTILE_SAMPLE));
+  const sample: number[] = [];
+  for (let i = 0; i < values.length; i += stride) {
+    const v = values[i]!;
+    if (Number.isFinite(v)) sample.push(v);
+  }
+  const sorted = Float64Array.from(sample).sort();
+  return qs.map((q) => {
+    if (sorted.length === 0) return NaN;
+    const pos = (sorted.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (pos - lo);
+  });
 }

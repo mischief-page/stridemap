@@ -1,20 +1,19 @@
-import { buildScene, type ColorMode } from '../core/pipeline';
-import type { ActivityType, Workout } from '../core/types';
+import type { ColorMode } from '../core/pipeline';
+import type { ActivityType } from '../core/types';
 import type { DateFormat, LegendBackdrop, LegendFont, LegendPosition } from '../render/legend';
 import { inkFor, type ScaleStyle, type Units } from '../render/scale';
 import { canvasSize, type Aspect, type Orientation } from '../render/canvas';
-import { DEFAULT_STYLE, renderSvg, type Blend } from '../render/svg';
-import { syntheticWorkouts } from '../sample/synthetic';
-import type { WorkerMessage } from './worker';
+import { DEFAULT_STYLE, type Blend } from '../render/svg';
+import type { EngineMessage, EngineRequest } from './worker';
 // Inlined so the page also works as a single file opened straight from disk.
-import ParseWorker from './worker?worker&inline';
+import EngineWorker from './worker?worker&inline';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
 
 const preview = $('preview');
 const status = $('status');
-let workouts: Workout[] = [];
+let hasData = false;
 let currentSvg = '';
 let currentSize = { width: DEFAULT_STYLE.width, height: DEFAULT_STYLE.height };
 
@@ -114,64 +113,77 @@ function updateOutputs() {
   $('smoothOut').textContent = input('smooth').value === '0' ? 'Off' : `${input('smooth').value} px`;
 }
 
-let pending = 0;
+// All heavy work happens in the engine worker. While it's drawing, only the
+// newest settings are kept, so dragging a slider never queues up stale frames.
+const engine = new EngineWorker();
+const send = (req: EngineRequest) => engine.postMessage(req);
+let seq = 0;
+let busy = false;
+let dirty = false;
+
 function render() {
   updateOutputs();
-  if (!workouts.length) return;
-  cancelAnimationFrame(pending);
-  pending = requestAnimationFrame(() => {
-    const { filters, layout, style } = readSettings();
-    const scene = buildScene(workouts, filters, layout);
-    currentSvg = renderSvg(scene, style);
-    preview.innerHTML = currentSvg;
-    // The preview takes the image's shape, whatever the window's.
-    preview.style.setProperty('--ratio', String(style.width / style.height));
-    currentSize = { width: style.width, height: style.height };
-    preview.style.background = style.background;
-    const withGps = workouts.filter((w) => w.track && !w.indoor).length;
-    status.textContent = `${scene.workoutCount} of ${withGps} outdoor workouts with GPS shown.`;
-    $<HTMLButtonElement>('downloadSvg').disabled = false;
-    $<HTMLButtonElement>('downloadPng').disabled = false;
-  });
+  if (!hasData) return;
+  if (busy) {
+    dirty = true;
+    return;
+  }
+  busy = true;
+  dirty = false;
+  const { filters, layout, style } = readSettings();
+  send({ kind: 'render', seq: ++seq, filters, layout, style });
+  currentSize = { width: style.width, height: style.height };
+  // The preview takes the image's shape, whatever the window's.
+  preview.style.setProperty('--ratio', String(style.width / style.height));
+  preview.style.background = style.background;
+  preview.classList.add('updating');
 }
 
-function load(list: Workout[]) {
-  workouts = list;
-  const starts = list.filter((w) => w.track).map((w) => w.start);
-  if (starts.length) {
+engine.onmessage = (event: MessageEvent<EngineMessage>) => {
+  const msg = event.data;
+  if (msg.kind === 'progress') {
+    const pct = Math.round((msg.progress.done / Math.max(1, msg.progress.total)) * 100);
+    status.textContent =
+      msg.progress.stage === 'workouts' ? `Reading workouts… ${pct}%` : `Reading routes… ${msg.progress.done} of ${msg.progress.total}`;
+  } else if (msg.kind === 'loaded') {
+    if (!msg.withGps) {
+      status.textContent = 'No outdoor walks or runs with GPS routes were found in this export.';
+      return;
+    }
     const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
-    input('from').min = input('to').min = iso(Math.min(...starts));
-    input('from').max = input('to').max = iso(Math.max(...starts));
+    input('from').min = input('to').min = iso(msg.firstStart!);
+    input('from').max = input('to').max = iso(msg.lastStart!);
+    hasData = true;
+    busy = false;
+    render();
+  } else if (msg.kind === 'rendered') {
+    busy = false;
+    currentSvg = msg.svg;
+    preview.innerHTML = msg.svg;
+    status.textContent = `${msg.shown} of ${msg.withGps} outdoor workouts with GPS shown.`;
+    $<HTMLButtonElement>('downloadSvg').disabled = false;
+    $<HTMLButtonElement>('downloadPng').disabled = false;
+    if (dirty) render();
+    else preview.classList.remove('updating');
+  } else {
+    busy = false;
+    status.textContent = `Couldn't read that file: ${msg.message}`;
   }
-  render();
-}
+};
+engine.onerror = (event) => {
+  busy = false;
+  status.textContent = `Something went wrong: ${event.message || 'the engine stopped unexpectedly'}`;
+};
 
 function readExport(file: File) {
   status.textContent = 'Reading export…';
-  const worker = new ParseWorker();
-  worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-    const msg = event.data;
-    if (msg.kind === 'progress') {
-      const pct = Math.round((msg.progress.done / Math.max(1, msg.progress.total)) * 100);
-      status.textContent =
-        msg.progress.stage === 'workouts' ? `Reading workouts… ${pct}%` : `Reading routes… ${msg.progress.done} of ${msg.progress.total}`;
-    } else if (msg.kind === 'done') {
-      worker.terminate();
-      if (!msg.workouts.some((w) => w.track)) {
-        status.textContent = 'No outdoor walks or runs with GPS routes were found in this export.';
-        return;
-      }
-      load(msg.workouts);
-    } else {
-      worker.terminate();
-      status.textContent = `Couldn't read that file: ${msg.message}`;
-    }
-  };
-  worker.onerror = (event) => {
-    worker.terminate();
-    status.textContent = `Couldn't read that file: ${event.message || 'the reader stopped unexpectedly'}`;
-  };
-  worker.postMessage(file);
+  hasData = false;
+  send({ kind: 'load-file', file });
+}
+
+function loadSample() {
+  status.textContent = 'Loading sample data…';
+  send({ kind: 'load-sample' });
 }
 
 const drop = $('drop');
@@ -210,7 +222,7 @@ $('presets').addEventListener('click', (e) => {
   render();
 });
 
-$('sample').addEventListener('click', () => load(syntheticWorkouts()));
+$('sample').addEventListener('click', loadSample);
 $('controls').addEventListener('input', render);
 
 function download(blob: Blob, name: string) {
@@ -238,4 +250,4 @@ $('downloadPng').addEventListener('click', async () => {
 
 updateOutputs();
 // ?sample opens straight into the demo data, which makes the page easy to link to.
-if (new URLSearchParams(location.search).has('sample')) load(syntheticWorkouts());
+if (new URLSearchParams(location.search).has('sample')) loadSample();

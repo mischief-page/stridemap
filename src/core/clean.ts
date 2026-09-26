@@ -1,4 +1,4 @@
-import { haversine } from './track';
+import { METERS_PER_DEG_LAT } from './track';
 import type { Track } from './types';
 
 export interface CleanOptions {
@@ -31,24 +31,38 @@ export function cleanTrack(track: Track, opts: CleanOptions = DEFAULT_CLEAN): Tr
   // If the track never locks to the warm-up accuracy, fall back to the normal threshold.
   if (start === n) start = 0;
 
+  // Flat-earth distance is accurate over the few meters between fixes, and much cheaper.
+  const mPerDegLon = n ? METERS_PER_DEG_LAT * Math.cos((track.lat[0]! * Math.PI) / 180) : 0;
+  const maxSpeed2 = opts.maxSpeedMps * opts.maxSpeedMps;
+  let prev = -1;
   for (let i = start; i < n; i++) {
-    const acc = track.hAcc[i]!;
-    if (acc > opts.maxAccuracyM) continue;
-    const prev = keep[keep.length - 1];
-    if (prev !== undefined) {
+    if (track.hAcc[i]! > opts.maxAccuracyM) continue;
+    if (prev !== -1) {
       const dt = (track.t[i]! - track.t[prev]!) / 1000;
       if (dt <= 0) continue;
-      const d = haversine(track.lat[prev]!, track.lon[prev]!, track.lat[i]!, track.lon[i]!);
-      if (d / dt > opts.maxSpeedMps) continue;
+      const dx = (track.lon[i]! - track.lon[prev]!) * mPerDegLon;
+      const dy = (track.lat[i]! - track.lat[prev]!) * METERS_PER_DEG_LAT;
+      if (dx * dx + dy * dy > maxSpeed2 * dt * dt) continue;
     }
     keep.push(i);
+    prev = i;
   }
 
-  return {
-    t: Float64Array.from(keep, (i) => track.t[i]!),
-    lat: Float64Array.from(keep, (i) => track.lat[i]!),
-    lon: Float64Array.from(keep, (i) => track.lon[i]!),
-    speed: Float32Array.from(keep, (i) => track.speed[i]!),
-    hAcc: Float32Array.from(keep, (i) => track.hAcc[i]!),
+  const m = keep.length;
+  const out: Track = {
+    t: new Float64Array(m),
+    lat: new Float64Array(m),
+    lon: new Float64Array(m),
+    speed: new Float32Array(m),
+    hAcc: new Float32Array(m),
   };
+  for (let k = 0; k < m; k++) {
+    const i = keep[k]!;
+    out.t[k] = track.t[i]!;
+    out.lat[k] = track.lat[i]!;
+    out.lon[k] = track.lon[i]!;
+    out.speed[k] = track.speed[i]!;
+    out.hAcc[k] = track.hAcc[i]!;
+  }
+  return out;
 }

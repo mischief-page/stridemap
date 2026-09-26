@@ -76,42 +76,44 @@ function fillGaps(values: Float64Array): Float64Array {
  * started.
  */
 export class HeatGrid {
-  private counts = new Map<string, number>();
+  /** Workouts per cell, keyed by a single number packed from the cell's column and row. */
+  private counts = new Map<number, number>();
+  /** Busiest count in each cell's 3×3 neighbourhood, filled in as cells are looked up. */
+  private neighbourhood = new Map<number, number>();
 
   constructor(private readonly cellM = 15) {}
 
-  private cellOf(lat: number, lon: number): [number, number] {
+  private cellOf(lat: number, lon: number): number {
     const cy = Math.floor((lat * METERS_PER_DEG_LAT) / this.cellM);
     // Use the latitude of the cell's own row so the column width is stable.
     const rowLat = ((cy + 0.5) * this.cellM) / METERS_PER_DEG_LAT;
     const mPerDegLon = METERS_PER_DEG_LAT * Math.cos((rowLat * Math.PI) / 180);
     const cx = Math.floor((lon * mPerDegLon) / this.cellM);
-    return [cx, cy];
+    return pack(cx, cy);
   }
 
   add(track: Track): void {
-    const seen = new Set<string>();
-    const visit = (lat: number, lon: number) => {
-      const [cx, cy] = this.cellOf(lat, lon);
-      seen.add(`${cx},${cy}`);
-    };
+    const seen = new Set<number>();
     const n = track.t.length;
     for (let i = 0; i < n; i++) {
-      visit(track.lat[i]!, track.lon[i]!);
+      seen.add(this.cellOf(track.lat[i]!, track.lon[i]!));
       // Fill gaps between sparse points so a fast segment doesn't skip cells.
       if (i > 0) {
         const d = haversine(track.lat[i - 1]!, track.lon[i - 1]!, track.lat[i]!, track.lon[i]!);
         const steps = Math.floor(d / (this.cellM / 2));
         for (let s = 1; s < steps; s++) {
           const f = s / steps;
-          visit(
-            track.lat[i - 1]! + (track.lat[i]! - track.lat[i - 1]!) * f,
-            track.lon[i - 1]! + (track.lon[i]! - track.lon[i - 1]!) * f,
+          seen.add(
+            this.cellOf(
+              track.lat[i - 1]! + (track.lat[i]! - track.lat[i - 1]!) * f,
+              track.lon[i - 1]! + (track.lon[i]! - track.lon[i - 1]!) * f,
+            ),
           );
         }
       }
     }
     for (const key of seen) this.counts.set(key, (this.counts.get(key) ?? 0) + 1);
+    this.neighbourhood.clear();
   }
 
   /**
@@ -120,18 +122,43 @@ export class HeatGrid {
    * the 3x3 neighbourhood.
    */
   countAt(lat: number, lon: number): number {
-    const [cx, cy] = this.cellOf(lat, lon);
-    let best = 0;
+    return this.countInCell(this.cellOf(lat, lon));
+  }
+
+  private countInCell(cell: number): number {
+    let best = this.neighbourhood.get(cell);
+    if (best !== undefined) return best;
+    const [cx, cy] = unpack(cell);
+    best = 0;
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
-        best = Math.max(best, this.counts.get(`${cx + dx},${cy + dy}`) ?? 0);
+        best = Math.max(best, this.counts.get(pack(cx + dx, cy + dy)) ?? 0);
       }
     }
+    this.neighbourhood.set(cell, best);
     return best;
   }
 
   /** Visit count for each point of a track, on a log scale (visit counts are very uneven). */
   series(track: Track): Float64Array {
-    return Float64Array.from(track.lat, (lat, i) => Math.log(this.countAt(lat, track.lon[i]!)));
+    const out = new Float64Array(track.lat.length);
+    let lastCell = NaN;
+    let lastValue = 0;
+    for (let i = 0; i < out.length; i++) {
+      // Consecutive GPS points usually share a cell.
+      const cell = this.cellOf(track.lat[i]!, track.lon[i]!);
+      if (cell !== lastCell) {
+        lastCell = cell;
+        lastValue = Math.log(this.countInCell(cell));
+      }
+      out[i] = lastValue;
+    }
+    return out;
   }
 }
+
+// Cells are packed into one number (fast Map keys). Offsets keep both parts
+// positive; 2^23 cells of 15 m covers the whole Earth in each direction.
+const OFFSET = 2 ** 23;
+const pack = (cx: number, cy: number) => (cx + OFFSET) * 2 ** 24 + (cy + OFFSET);
+const unpack = (key: number): [number, number] => [Math.floor(key / 2 ** 24) - OFFSET, (key % 2 ** 24) - OFFSET];

@@ -1,5 +1,5 @@
 import { cleanTrack } from './clean';
-import { anchorTrack, compressRadially, fitBounds, quantile, type Bounds } from './layout';
+import { anchorTrack, compressRadially, fitBounds, quantiles, type Bounds } from './layout';
 import { HeatGrid, paceSeries } from './values';
 import type { ActivityType, LocalTrack, Track, Workout } from './types';
 
@@ -47,23 +47,57 @@ export function filterWorkouts(workouts: Workout[], filters: Filters): Workout[]
   );
 }
 
+/** Per-workout work that no setting changes: cleaned GPS, anchored shape and pace. Computed once. */
+interface Prepared {
+  track: Track;
+  x: Float64Array;
+  y: Float64Array;
+  /** Negated pace, so larger always means "hotter" (faster). */
+  speedValue: Float64Array;
+}
+const prepared = new WeakMap<Workout, Prepared | null>();
+
+function prepare(w: Workout): Prepared | null {
+  let p = prepared.get(w);
+  if (p === undefined) {
+    const track = cleanTrack(w.track as Track);
+    p = track.t.length >= 2 ? { track, ...anchorTrack(track), speedValue: paceSeries(track).map((v) => -v) } : null;
+    prepared.set(w, p);
+  }
+  return p;
+}
+
+/**
+ * Visit counts depend only on which workouts are selected, so the last grid
+ * (and each workout's values from it) is reused until the selection changes.
+ */
+let heatCache: { key: string; values: WeakMap<Workout, Float64Array> } | null = null;
+
+function frequencyValues(selected: { w: Workout; p: Prepared }[]): Map<Workout, Float64Array> {
+  const key = selected.map((s) => s.w.id).join('|');
+  if (heatCache?.key !== key) {
+    const heat = new HeatGrid();
+    for (const s of selected) heat.add(s.p.track);
+    const values = new WeakMap<Workout, Float64Array>();
+    for (const s of selected) values.set(s.w, heat.series(s.p.track));
+    heatCache = { key, values };
+  }
+  const cache = heatCache.values;
+  return new Map(selected.map((s) => [s.w, cache.get(s.w)!]));
+}
+
 export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOptions): Scene {
   const selected = filterWorkouts(workouts, filters)
-    .map((w) => ({ id: w.id, start: w.start, track: cleanTrack(w.track as Track) }))
-    .filter((w) => w.track.t.length >= 2);
+    .map((w) => ({ w, p: prepare(w) }))
+    .filter((s): s is { w: Workout; p: Prepared } => s.p !== null);
 
-  let heat: HeatGrid | null = null;
-  if (opts.colorMode === 'frequency') {
-    heat = new HeatGrid();
-    for (const w of selected) heat.add(w.track);
-  }
-
-  let tracks: LocalTrack[] = selected.map((w) => {
-    const { x, y } = anchorTrack(w.track);
-    // Negate pace so larger always means "hotter" (faster).
-    const value = heat ? heat.series(w.track) : paceSeries(w.track).map((p) => -p);
-    return { workoutId: w.id, x, y, value };
-  });
+  const heat = opts.colorMode === 'frequency' ? frequencyValues(selected) : null;
+  let tracks: LocalTrack[] = selected.map(({ w, p }) => ({
+    workoutId: w.id,
+    x: p.x,
+    y: p.y,
+    value: heat ? heat.get(w)! : p.speedValue,
+  }));
 
   tracks = compressRadially(tracks, opts.radialExponent);
 
@@ -74,19 +108,27 @@ export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOp
     radialExponent: opts.radialExponent,
     workoutCount: tracks.length,
     dateRange: selected.length
-      ? [Math.min(...selected.map((w) => w.start)), Math.max(...selected.map((w) => w.start))]
+      ? [Math.min(...selected.map((s) => s.w.start)), Math.max(...selected.map((s) => s.w.start))]
       : null,
   };
 }
 
 function colorDomain(tracks: LocalTrack[], mode: ColorMode): [number, number] {
-  const all: number[] = [];
-  for (const t of tracks) for (const v of t.value) all.push(v);
-  if (all.length === 0) return [0, 1];
+  // Gather an even sample of values rather than all of them (there can be millions).
+  const total = tracks.reduce((n, t) => n + t.value.length, 0);
+  if (total === 0) return [0, 1];
+  const stride = Math.max(1, Math.floor(total / 200_000));
+  const sample: number[] = [];
+  let i = 0;
+  for (const t of tracks) {
+    for (; i < t.value.length; i += stride) sample.push(t.value[i]!);
+    i -= t.value.length;
+  }
   // Pace is clipped to its 5th–95th percentile so a single GPS glitch can't
   // stretch the scale. Frequency starts at 0 (log of one visit), so streets
   // visited once always get color A, and tops out at the 99th percentile.
-  const lo = mode === 'frequency' ? 0 : quantile(all, 0.05);
-  const hi = quantile(all, mode === 'frequency' ? 0.99 : 0.95);
+  const [p05, p95, p99] = quantiles(sample, [0.05, 0.95, 0.99]) as [number, number, number];
+  const lo = mode === 'frequency' ? 0 : p05;
+  const hi = mode === 'frequency' ? p99 : p95;
   return [lo, hi > lo ? hi : lo + 1];
 }

@@ -63,7 +63,7 @@ const SIMPLIFY_CURVED_PX = 2;
 
 export function renderSvg(scene: Scene, style: StyleOptions): string {
   const { width: W, height: H, padding: P } = style;
-  const { bounds: b, domain } = scene;
+  const { bounds: b } = scene;
 
   // Uniform scale so north stays up and shapes aren't stretched, then center the box.
   const bw = Math.max(b.maxX - b.minX, 1);
@@ -72,6 +72,54 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
   const ox = W / 2 - ((b.minX + b.maxX) / 2) * scale;
   const oy = H / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
 
+  const body = drawRoutes(scene, style, scale, ox, oy);
+
+  // The inner <svg> clips everything to the canvas. The outer one's viewport can
+  // be wider than the image when it's embedded in a box of another shape, and
+  // routes that run off the edge would otherwise show in the extra space.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+<title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
+<svg width="${W}" height="${H}">
+<rect width="100%" height="100%" fill="${style.background}"/>
+<g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate">
+${body}
+</g>
+${renderScale(
+  {
+    width: W,
+    height: H,
+    padding: P,
+    pxPerMeter: scale,
+    anchorX: ox,
+    anchorY: oy,
+    radialExponent: scene.radialExponent,
+    // Keep the bar out of the legend's way.
+    barSide: style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left',
+  },
+  style.scale,
+  style.units,
+  style.background,
+  style.scaleColor,
+)}
+${renderLegend({ width: W, height: H, padding: P, background: style.background }, style.legend, scene.dateRange)}
+</svg>
+</svg>`;
+}
+
+/**
+ * The last routes drawn. Changing only the legend or scale reuses them, since
+ * drawing thousands of routes is the slow part.
+ */
+let routesCache: { scene: Scene; key: string; body: string } | null = null;
+
+function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string {
+  const key = JSON.stringify([
+    style.width, style.height, style.padding, style.colorA, style.colorB,
+    style.strokeWidth, style.opacity, style.smoothing, style.blend,
+  ]);
+  if (routesCache?.scene === scene && routesCache.key === key) return routesCache.body;
+
+  const { domain } = scene;
   const color = interpolate([style.colorA, style.colorB], 'oklch');
   const palette = Array.from({ length: BINS }, (_, i) => formatHex(color(i / (BINS - 1))));
   const binOf = (v: number) => {
@@ -123,37 +171,8 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
   const body = paths
     .map((d, i) => (d.length ? `<path stroke="${palette[i]}"${blendStyle} d="${d.join('')}"/>` : ''))
     .join('\n');
-
-  // The inner <svg> clips everything to the canvas. The outer one's viewport can
-  // be wider than the image when it's embedded in a box of another shape, and
-  // routes that run off the edge would otherwise show in the extra space.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-<title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
-<svg width="${W}" height="${H}">
-<rect width="100%" height="100%" fill="${style.background}"/>
-<g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate">
-${body}
-</g>
-${renderScale(
-  {
-    width: W,
-    height: H,
-    padding: P,
-    pxPerMeter: scale,
-    anchorX: ox,
-    anchorY: oy,
-    radialExponent: scene.radialExponent,
-    // Keep the bar out of the legend's way.
-    barSide: style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left',
-  },
-  style.scale,
-  style.units,
-  style.background,
-  style.scaleColor,
-)}
-${renderLegend({ width: W, height: H, padding: P, background: style.background }, style.legend, scene.dateRange)}
-</svg>
-</svg>`;
+  routesCache = { scene, key, body };
+  return body;
 }
 
 /**
