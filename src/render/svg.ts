@@ -100,8 +100,12 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
     .map((d, i) => (d.length ? `<path stroke="${palette[i]}"${blendStyle} d="${d.join('')}"/>` : ''))
     .join('\n');
 
+  // The inner <svg> clips everything to the canvas. The outer one's viewport can
+  // be wider than the image when it's embedded in a box of another shape, and
+  // routes that run off the edge would otherwise show in the extra space.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
 <title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
+<svg width="${W}" height="${H}">
 <rect width="100%" height="100%" fill="${style.background}"/>
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate">
 ${body}
@@ -124,6 +128,7 @@ ${renderScale(
   style.scaleColor,
 )}
 ${renderLegend({ width: W, height: H, padding: P, background: style.background }, style.legend, scene.dateRange)}
+</svg>
 </svg>`;
 }
 
