@@ -1,5 +1,6 @@
 import { buildScene, type ColorMode } from '../core/pipeline';
 import type { ActivityType, Workout } from '../core/types';
+import type { ScaleStyle, Units } from '../render/scale';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../render/svg';
 import { syntheticWorkouts } from '../sample/synthetic';
 import type { WorkerMessage } from './worker';
@@ -19,6 +20,9 @@ input('background').value = DEFAULT_STYLE.background;
 input('stroke').value = String(DEFAULT_STYLE.strokeWidth);
 input('opacity').value = String(DEFAULT_STYLE.opacity);
 $<HTMLSelectElement>('blend').value = DEFAULT_STYLE.blend;
+$<HTMLSelectElement>('scale').value = DEFAULT_STYLE.scale;
+// Miles where people run in miles; kilometers everywhere else.
+$<HTMLSelectElement>('units').value = /^en-(US|LR)|^my/.test(navigator.language) ? 'mi' : 'km';
 
 function readSettings() {
   const types = [...document.querySelectorAll<HTMLInputElement>('#types input:checked')].map(
@@ -44,6 +48,8 @@ function readSettings() {
       strokeWidth: Number(input('stroke').value),
       opacity: Number(input('opacity').value),
       blend: $<HTMLSelectElement>('blend').value as Blend,
+      scale: $<HTMLSelectElement>('scale').value as ScaleStyle,
+      units: $<HTMLSelectElement>('units').value as Units,
     },
   };
 }
@@ -123,6 +129,25 @@ drop.addEventListener('drop', (e) => {
   drop.classList.remove('over');
   const file = e.dataTransfer?.files[0];
   if (file) readExport(file);
+});
+
+$('presets').addEventListener('click', (e) => {
+  const range = (e.target as HTMLElement).dataset.range;
+  if (!range) return;
+  // Local calendar dates, as the date inputs expect.
+  const ymd = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const now = new Date();
+  const year = now.getFullYear();
+  const [from, to] = {
+    all: ['', ''],
+    '12m': [ymd(new Date(year - 1, now.getMonth(), now.getDate() + 1)), ymd(now)],
+    this: [`${year}-01-01`, ymd(now)],
+    last: [`${year - 1}-01-01`, `${year - 1}-12-31`],
+  }[range as 'all' | '12m' | 'this' | 'last'];
+  input('from').value = from!;
+  input('to').value = to!;
+  render();
 });
 
 $('sample').addEventListener('click', () => load(syntheticWorkouts()));

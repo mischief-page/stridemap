@@ -29,6 +29,8 @@ export interface Scene {
    * to frequent for frequency.
    */
   domain: [number, number];
+  /** Carried through so the renderer can draw an accurate distance scale. */
+  radialExponent: number;
   workoutCount: number;
 }
 
@@ -67,6 +69,7 @@ export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOp
     tracks,
     bounds: fitBounds(tracks, opts.fitPercentile),
     domain: colorDomain(tracks, opts.colorMode),
+    radialExponent: opts.radialExponent,
     workoutCount: tracks.length,
   };
 }

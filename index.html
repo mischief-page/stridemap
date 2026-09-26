@@ -37,6 +37,12 @@
             <label>From <input type="date" id="from" /></label>
             <label>To <input type="date" id="to" /></label>
           </div>
+          <div class="row presets" id="presets">
+            <button type="button" data-range="all">All time</button>
+            <button type="button" data-range="12m">Last 12 months</button>
+            <button type="button" data-range="this">This year</button>
+            <button type="button" data-range="last">Last year</button>
+          </div>
         </section>
 
         <section>
@@ -75,6 +81,22 @@
           <label>Opacity <output id="opacityOut"></output>
             <input type="range" id="opacity" min="0.1" max="1" step="0.05" />
           </label>
+          <div class="row">
+            <label>Scale
+              <select id="scale">
+                <option value="bar">Bar</option>
+                <option value="rings">Distance rings</option>
+                <option value="off">None</option>
+              </select>
+            </label>
+            <label>Units
+              <select id="units">
+                <option value="km">km</option>
+                <option value="mi">miles</option>
+              </select>
+            </label>
+          </div>
+          <small>When long routes are squashed, the scale is drawn as rings, since a bar can't be accurate.</small>
         </section>
 
         <section class="row">

@@ -48,6 +48,14 @@ Two color modes:
 - Segments are grouped into 32 color steps with one `<path>` per step, drawn cool-to-hot so the hottest lines are on top. This keeps the SVG in the hundreds of kilobytes for hundreds of workouts.
 - Blend modes: *glow* (`screen`, for dark backgrounds), *ink* (`multiply`, for light backgrounds), or none.
 
+### Distance scale
+So viewers can judge how long routes are, the image carries a distance scale in km or miles (the web app defaults to miles for US, Liberia and Myanmar locales):
+- **Bar** (default): bottom-left, about a fifth of the drawing wide, rounded to the nearest 1, 2 or 5 × 10ⁿ.
+- **Distance rings**: dashed circles around the anchor at tidy distances, labelled.
+- **None**.
+
+When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale is drawn in white or black depending on how light the background is.
+
 ## Privacy
 - Everything runs locally: in the browser (parsing happens in a Web Worker) or in the CLI. Nothing is uploaded.
 - Anchoring discards absolute location. The output contains only positions relative to each workout's start, scaled to the canvas, so it can't be used to recover coordinates such as a home address. (A distinctive route shape could still be recognisable to someone who knows the area.)

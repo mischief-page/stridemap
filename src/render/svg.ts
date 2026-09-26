@@ -1,5 +1,6 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
+import { renderScale, type ScaleStyle, type Units } from './scale';
 
 export type Blend = 'normal' | 'screen' | 'multiply';
 
@@ -17,6 +18,9 @@ export interface StyleOptions {
   opacity: number;
   /** 'screen' makes overlaps glow on dark backgrounds; 'multiply' darkens on light ones. */
   blend: Blend;
+  /** Distance scale so viewers can judge how long the routes are. */
+  scale: ScaleStyle;
+  units: Units;
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
@@ -29,6 +33,8 @@ export const DEFAULT_STYLE: StyleOptions = {
   strokeWidth: 1.2,
   opacity: 0.7,
   blend: 'screen',
+  scale: 'bar',
+  units: 'km',
 };
 
 /**
@@ -94,6 +100,12 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate">
 ${body}
 </g>
+${renderScale(
+  { width: W, height: H, padding: P, pxPerMeter: scale, anchorX: ox, anchorY: oy, radialExponent: scene.radialExponent },
+  style.scale,
+  style.units,
+  style.background,
+)}
 </svg>`;
 }
 

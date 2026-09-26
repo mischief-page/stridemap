@@ -13,6 +13,7 @@ import { parseArgs } from 'node:util';
 import { buildScene, type ColorMode } from '../src/core/pipeline';
 import { ACTIVITY_TYPES, type ActivityType } from '../src/core/types';
 import { readHealthExport } from '../src/parse/health-export';
+import type { ScaleStyle, Units } from '../src/render/scale';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../src/render/svg';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
@@ -31,6 +32,8 @@ const { values, positionals } = parseArgs({
     'color-b': { type: 'string', default: DEFAULT_STYLE.colorB },
     background: { type: 'string', default: DEFAULT_STYLE.background },
     blend: { type: 'string', default: DEFAULT_STYLE.blend },
+    scale: { type: 'string', default: DEFAULT_STYLE.scale },
+    units: { type: 'string', default: DEFAULT_STYLE.units },
   },
 });
 
@@ -67,6 +70,8 @@ const svg = renderSvg(scene, {
   colorB: values['color-b'],
   background: values.background,
   blend: values.blend as Blend,
+  scale: values.scale as ScaleStyle,
+  units: values.units as Units,
 });
 
 await mkdir(dirname(values.out), { recursive: true });
