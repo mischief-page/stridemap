@@ -3,6 +3,7 @@ import type { Scene } from '../core/pipeline';
 import { canvasSize } from './canvas';
 import { DEFAULT_LEGEND, escapeXml, renderLegend, type LegendOptions } from './legend';
 import { renderScale, type ScaleStyle, type Units } from './scale';
+import { catmullRomControls, smoothPolyline } from './smooth';
 
 export type Blend = 'normal' | 'screen' | 'multiply';
 
@@ -18,6 +19,11 @@ export interface StyleOptions {
   background: string;
   strokeWidth: number;
   opacity: number;
+  /**
+   * Blur radius in image pixels. 0 draws the GPS track as recorded; higher
+   * values round corners into curves and turn routes into flowing strokes.
+   */
+  smoothing: number;
   /** 'screen' makes overlaps glow on dark backgrounds; 'multiply' darkens on light ones. */
   blend: Blend;
   /** Distance scale so viewers can judge how long the routes are. */
@@ -36,6 +42,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   background: '#0b0f19',
   strokeWidth: 1.2,
   opacity: 0.7,
+  smoothing: 0,
   blend: 'screen',
   scale: 'bar',
   units: 'km',
@@ -51,6 +58,8 @@ const BINS = 32;
 
 /** Route detail finer than this many pixels is simplified away. */
 const SIMPLIFY_PX = 1;
+/** Curves through the kept points follow a smoothed route closely, so fewer points are needed. */
+const SIMPLIFY_CURVED_PX = 2;
 
 export function renderSvg(scene: Scene, style: StyleOptions): string {
   const { width: W, height: H, padding: P } = style;
@@ -73,22 +82,37 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
   const paths: string[][] = Array.from({ length: BINS }, () => []);
   const r = (n: number) => Math.round(n * 10) / 10;
 
+  const curved = style.smoothing > 0;
   for (const t of scene.tracks) {
-    const sx = Float64Array.from(t.x, (x) => ox + x * scale);
-    const sy = Float64Array.from(t.y, (y) => oy - y * scale);
-    const keep = simplify(sx, sy, SIMPLIFY_PX);
+    const { x: sx, y: sy, value } = smoothPolyline(
+      {
+        x: Float64Array.from(t.x, (x) => ox + x * scale),
+        y: Float64Array.from(t.y, (y) => oy - y * scale),
+        value: t.value,
+      },
+      style.smoothing,
+    );
+    const keep = simplify(sx, sy, curved ? SIMPLIFY_CURVED_PX : SIMPLIFY_PX);
     let currentBin = -1;
     for (let k = 1; k < keep.length; k++) {
       const a = keep[k - 1]!;
       const b = keep[k]!;
       // Color the simplified segment by the average value of the points it replaces.
       let sum = 0;
-      for (let i = a + 1; i <= b; i++) sum += t.value[i]!;
+      for (let i = a + 1; i <= b; i++) sum += value[i]!;
       const bin = binOf(sum / (b - a));
+      // Smoothed routes are drawn as curves through the kept points, so they
+      // stay smooth when zoomed in; the curve's tangents come from the whole
+      // route, so color changes don't put kinks in it.
+      let seg = `L${r(sx[b]!)} ${r(sy[b]!)}`;
+      if (curved) {
+        const [c1x, c1y, c2x, c2y] = catmullRomControls(sx, sy, keep, k);
+        seg = `C${r(c1x)} ${r(c1y)} ${r(c2x)} ${r(c2y)} ${r(sx[b]!)} ${r(sy[b]!)}`;
+      }
       if (bin === currentBin) {
-        paths[bin]!.push(`L${r(sx[b]!)} ${r(sy[b]!)}`);
+        paths[bin]!.push(seg);
       } else {
-        paths[bin]!.push(`M${r(sx[a]!)} ${r(sy[a]!)}L${r(sx[b]!)} ${r(sy[b]!)}`);
+        paths[bin]!.push(`M${r(sx[a]!)} ${r(sy[a]!)}${seg}`);
         currentBin = bin;
       }
     }

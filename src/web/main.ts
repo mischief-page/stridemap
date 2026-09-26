@@ -56,6 +56,7 @@ function readSettings() {
       background: input('background').value,
       strokeWidth: Number(input('stroke').value),
       opacity: Number(input('opacity').value),
+      smoothing: Number(input('smooth').value),
       blend: $<HTMLSelectElement>('blend').value as Blend,
       scale: $<HTMLSelectElement>('scale').value as ScaleStyle,
       units: $<HTMLSelectElement>('units').value as Units,
@@ -110,6 +111,7 @@ function updateOutputs() {
   $('squashOut').textContent = input('squash').value;
   $('strokeOut').textContent = input('stroke').value;
   $('opacityOut').textContent = input('opacity').value;
+  $('smoothOut').textContent = input('smooth').value === '0' ? 'Off' : `${input('smooth').value} px`;
 }
 
 let pending = 0;

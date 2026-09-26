@@ -51,6 +51,9 @@ Two color modes:
 - Segments are grouped into 32 color steps with one `<path>` per step, drawn cool-to-hot so the hottest lines are on top. This keeps the SVG in the hundreds of kilobytes for hundreds of workouts.
 - Blend modes: *glow* (`screen`, for dark backgrounds), *ink* (`multiply`, for light backgrounds), or none.
 
+### Smoothing
+Optional, measured in image pixels (0–40), so the same setting looks the same whatever the fit or squash. Each route is resampled at even spacing along its length and blurred with a Gaussian of that radius. The window narrows symmetrically near the ends, so every route still starts exactly on the anchor. The smoothed route is then simplified and drawn as a Catmull–Rom curve (cubic Béziers) through the kept points, with tangents taken from the whole route so color changes don't cause kinks. Colors are unchanged: each point keeps its pace or visit value. Heavy smoothing cuts corners, so routes get slightly shorter than true scale.
+
 ### Distance scale
 So viewers can judge how long routes are, the image carries a distance scale in km or miles (the web app defaults to miles for US, Liberia and Myanmar locales):
 - **Bar** (default): bottom-left, about a fifth of the drawing wide, rounded to the nearest 1, 2 or 5 × 10ⁿ.
@@ -78,5 +81,4 @@ The title also becomes the SVG's `<title>`. All user text is XML-escaped.
 ## Not yet decided / next
 - Embeddable output: a `<script>` + web component or `<iframe>` snippet, in addition to SVG/PNG download.
 - Per-activity pace scales (so walks aren't always at the cool end).
-- Optional smoothing of positions for noisy tracks from older phones.
 - Multi-stop color scales.

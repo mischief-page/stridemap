@@ -44,6 +44,7 @@ const { values, positionals } = parseArgs({
     units: { type: 'string', default: DEFAULT_STYLE.units },
     'scale-color': { type: 'string' },
     aspect: { type: 'string', default: '3:2' },
+    smooth: { type: 'string', default: '0' },
     portrait: { type: 'boolean', default: false },
     title: { type: 'string', default: '' },
     name: { type: 'string', default: '' },
@@ -88,6 +89,7 @@ const scene = buildScene(
 const svg = renderSvg(scene, {
   ...DEFAULT_STYLE,
   ...canvasSize(values.aspect as Aspect, values.portrait ? 'portrait' : 'landscape'),
+  smoothing: Number(values.smooth),
   colorA: values['color-a'],
   colorB: values['color-b'],
   background: values.background,
