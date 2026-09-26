@@ -24,6 +24,9 @@ export.zip ─► parse ─► clean ─► color values ─► anchor ─► sq
 - Each workout follows its GPS track from the anchor: north goes up, south down, east right, west left.
 - Distances are in meters on the ground, so shapes aren't distorted by latitude.
 
+### Canvas shape
+The image has a fixed print shape chosen by the person, independent of the browser window: 3:2 (default, 24×36 in posters), 4:3 (18×24 in), 5:4 (8×10, 16×20 in), 7:5 (5×7 in, 50×70 cm), ISO A-series (√2), 16:9, or square, in landscape or portrait. The short side is always 1200 px so text and line weights look the same across shapes. The preview takes the same shape, and the SVG clips its content to the canvas so embeds match the download.
+
 ### Fit and centering
 - Default: the box is set so that **95%** of workouts fit fully on each side. The other 5% run off the edge, so one unusually long route doesn't shrink everything else into a dot. This percentile is a setting (50–100; 100 fits everything).
 - Setting: **Squash long routes** (radial exponent, 0.3–1), for people who'd rather keep every route on the canvas.

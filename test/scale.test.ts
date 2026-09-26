@@ -3,7 +3,10 @@ import { buildScene } from '../src/core/pipeline';
 import { METERS_PER_DEG_LAT, trackFromPoints } from '../src/core/track';
 import type { Workout } from '../src/core/types';
 import { formatDistance, niceRound } from '../src/render/scale';
-import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
+import { DEFAULT_STYLE as LANDSCAPE, renderSvg } from '../src/render/svg';
+
+// A square canvas keeps the arithmetic below simple.
+const DEFAULT_STYLE = { ...LANDSCAPE, width: 1200, height: 1200 };
 
 describe('niceRound', () => {
   it('rounds to the nearest 1, 2 or 5 × 10ⁿ', () => {

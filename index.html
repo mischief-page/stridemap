@@ -67,6 +67,23 @@
 
         <section>
           <h2>Shape</h2>
+          <div class="row">
+            <label>Print
+              <select id="aspect">
+                <option value="3:2">3:2 (12×18, 24×36 in)</option>
+                <option value="4:3">4:3 (18×24 in)</option>
+                <option value="5:4">5:4 (8×10, 16×20 in)</option>
+                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
+                <option value="iso">A4 / A3 / A2</option>
+                <option value="16:9">16:9 (screen)</option>
+                <option value="1:1">Square</option>
+              </select>
+            </label>
+            <fieldset class="row" id="orientation">
+              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
+              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
+            </fieldset>
+          </div>
           <label>Fit <output id="fitOut"></output>
             <input type="range" id="fit" min="50" max="100" step="1" value="95" />
             <small>Share of workouts that must fit on the canvas. The rest run off the edge.</small>

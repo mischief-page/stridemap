@@ -13,6 +13,7 @@ import { parseArgs } from 'node:util';
 import { buildScene, type ColorMode } from '../src/core/pipeline';
 import { ACTIVITY_TYPES, type ActivityType } from '../src/core/types';
 import { readHealthExport } from '../src/parse/health-export';
+import { canvasSize, type Aspect } from '../src/render/canvas';
 import {
   DEFAULT_LEGEND,
   type DateFormat,
@@ -42,6 +43,8 @@ const { values, positionals } = parseArgs({
     scale: { type: 'string', default: DEFAULT_STYLE.scale },
     units: { type: 'string', default: DEFAULT_STYLE.units },
     'scale-color': { type: 'string' },
+    aspect: { type: 'string', default: '3:2' },
+    portrait: { type: 'boolean', default: false },
     title: { type: 'string', default: '' },
     name: { type: 'string', default: '' },
     dates: { type: 'boolean', default: false },
@@ -84,6 +87,7 @@ const scene = buildScene(
 
 const svg = renderSvg(scene, {
   ...DEFAULT_STYLE,
+  ...canvasSize(values.aspect as Aspect, values.portrait ? 'portrait' : 'landscape'),
   colorA: values['color-a'],
   colorB: values['color-b'],
   background: values.background,

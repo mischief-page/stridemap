@@ -1,5 +1,6 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
+import { canvasSize } from './canvas';
 import { DEFAULT_LEGEND, escapeXml, renderLegend, type LegendOptions } from './legend';
 import { renderScale, type ScaleStyle, type Units } from './scale';
 
@@ -28,8 +29,7 @@ export interface StyleOptions {
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
-  width: 1200,
-  height: 1200,
+  ...canvasSize('3:2', 'landscape'),
   padding: 60,
   colorA: '#1d4ed8',
   colorB: '#fbbf24',

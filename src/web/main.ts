@@ -2,6 +2,7 @@ import { buildScene, type ColorMode } from '../core/pipeline';
 import type { ActivityType, Workout } from '../core/types';
 import type { DateFormat, LegendBackdrop, LegendFont, LegendPosition } from '../render/legend';
 import { inkFor, type ScaleStyle, type Units } from '../render/scale';
+import { canvasSize, type Aspect, type Orientation } from '../render/canvas';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../render/svg';
 import { syntheticWorkouts } from '../sample/synthetic';
 import type { WorkerMessage } from './worker';
@@ -15,6 +16,7 @@ const preview = $('preview');
 const status = $('status');
 let workouts: Workout[] = [];
 let currentSvg = '';
+let currentSize = { width: DEFAULT_STYLE.width, height: DEFAULT_STYLE.height };
 
 // Style defaults come from the renderer so the page and CLI agree.
 input('colorA').value = DEFAULT_STYLE.colorA;
@@ -45,6 +47,10 @@ function readSettings() {
     },
     style: {
       ...DEFAULT_STYLE,
+      ...canvasSize(
+        $<HTMLSelectElement>('aspect').value as Aspect,
+        document.querySelector<HTMLInputElement>('#orientation input:checked')!.value as Orientation,
+      ),
       colorA: input('colorA').value,
       colorB: input('colorB').value,
       background: input('background').value,
@@ -116,6 +122,9 @@ function render() {
     const scene = buildScene(workouts, filters, layout);
     currentSvg = renderSvg(scene, style);
     preview.innerHTML = currentSvg;
+    // The preview takes the image's shape, whatever the window's.
+    preview.style.setProperty('--ratio', String(style.width / style.height));
+    currentSize = { width: style.width, height: style.height };
     preview.style.background = style.background;
     const withGps = workouts.filter((w) => w.track && !w.indoor).length;
     status.textContent = `${scene.workoutCount} of ${withGps} outdoor workouts with GPS shown.`;
@@ -214,7 +223,7 @@ $('downloadSvg').addEventListener('click', () => {
 });
 
 $('downloadPng').addEventListener('click', async () => {
-  const { width, height } = DEFAULT_STYLE;
+  const { width, height } = currentSize;
   const scale = 2;
   const img = new Image();
   img.src = URL.createObjectURL(new Blob([currentSvg], { type: 'image/svg+xml' }));

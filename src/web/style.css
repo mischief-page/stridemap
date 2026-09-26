@@ -165,9 +165,10 @@ button:disabled { opacity: 0.5; cursor: default; }
 
 #preview {
   margin: 0;
-  /* Always square like the image, and as large as fits both the column and the window. */
-  aspect-ratio: 1;
-  width: min(100%, calc(100vh - 120px));
+  /* Same shape as the image (set from script), as large as fits both the column and the window. */
+  --ratio: 1.5;
+  aspect-ratio: var(--ratio);
+  width: min(100%, calc((100vh - 120px) * var(--ratio)));
   justify-self: center;
   border-radius: 12px;
   overflow: hidden;
