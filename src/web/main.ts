@@ -1,6 +1,6 @@
 import { buildScene, type ColorMode } from '../core/pipeline';
 import type { ActivityType, Workout } from '../core/types';
-import type { ScaleStyle, Units } from '../render/scale';
+import { inkFor, type ScaleStyle, type Units } from '../render/scale';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../render/svg';
 import { syntheticWorkouts } from '../sample/synthetic';
 import type { WorkerMessage } from './worker';
@@ -52,11 +52,27 @@ function readSettings() {
       blend: $<HTMLSelectElement>('blend').value as Blend,
       scale: $<HTMLSelectElement>('scale').value as ScaleStyle,
       units: $<HTMLSelectElement>('units').value as Units,
+      scaleColor: scaleColorChosen ? input('scaleColor').value : null,
     },
   };
 }
 
+// Until someone picks a scale color, it follows the background (white or black).
+let scaleColorChosen = false;
+function syncScaleColor() {
+  if (!scaleColorChosen) input('scaleColor').value = inkFor(input('background').value);
+  $('scaleColorAuto').hidden = !scaleColorChosen;
+}
+input('scaleColor').addEventListener('input', () => {
+  scaleColorChosen = true;
+});
+$('scaleColorAuto').addEventListener('click', () => {
+  scaleColorChosen = false;
+  render();
+});
+
 function updateOutputs() {
+  syncScaleColor();
   $('fitOut').textContent = `${input('fit').value}%`;
   $('squashOut').textContent = input('squash').value;
   $('strokeOut').textContent = input('stroke').value;

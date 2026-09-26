@@ -52,6 +52,16 @@ describe('scale on the image', () => {
     expect(svg).not.toMatch(/<path d="M60 /);
   });
 
+  it('uses the chosen color, or white/black to suit the background', () => {
+    const bar = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
+    const rings = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 0.5 });
+    for (const scene of [bar, rings]) {
+      expect(renderSvg(scene, { ...DEFAULT_STYLE, scaleColor: '#ff00aa' })).toMatch(/class="scale"[\s\S]*#ff00aa/);
+      expect(renderSvg(scene, DEFAULT_STYLE)).toMatch(/class="scale"[\s\S]*stroke="#ffffff"/);
+      expect(renderSvg(scene, { ...DEFAULT_STYLE, background: '#f6f1e7' })).toMatch(/class="scale"[\s\S]*stroke="#000000"/);
+    }
+  });
+
   it('can be turned off', () => {
     const scene = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
     expect(renderSvg(scene, { ...DEFAULT_STYLE, scale: 'off' })).not.toContain('class="scale"');

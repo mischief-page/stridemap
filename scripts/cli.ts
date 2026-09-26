@@ -34,6 +34,7 @@ const { values, positionals } = parseArgs({
     blend: { type: 'string', default: DEFAULT_STYLE.blend },
     scale: { type: 'string', default: DEFAULT_STYLE.scale },
     units: { type: 'string', default: DEFAULT_STYLE.units },
+    'scale-color': { type: 'string' },
   },
 });
 
@@ -72,6 +73,7 @@ const svg = renderSvg(scene, {
   blend: values.blend as Blend,
   scale: values.scale as ScaleStyle,
   units: values.units as Units,
+  scaleColor: values['scale-color'] ?? null,
 });
 
 await mkdir(dirname(values.out), { recursive: true });

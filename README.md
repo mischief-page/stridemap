@@ -41,7 +41,7 @@ npm run cli -- --sample --out out/sample.svg
 npm run cli -- ~/Downloads/export.zip --mode frequency --types running --from 2025-01-01 --out out/runs.svg
 ```
 
-CLI options: `--mode pace|frequency`, `--types running,walking,hiking`, `--from`/`--to` (dates), `--fit 50..100`, `--squash 0.3..1`, `--color-a`, `--color-b`, `--background`, `--blend screen|multiply|normal`, `--scale bar|rings|off`, `--units km|mi`.
+CLI options: `--mode pace|frequency`, `--types running,walking,hiking`, `--from`/`--to` (dates), `--fit 50..100`, `--squash 0.3..1`, `--color-a`, `--color-b`, `--background`, `--blend screen|multiply|normal`, `--scale bar|rings|off`, `--units km|mi`, `--scale-color` (defaults to white or black to suit the background).
 
 ## How it works
 

@@ -36,21 +36,32 @@ export function formatDistance(amount: number, units: Units): string {
   return `${+amount.toPrecision(3)} ${units}`;
 }
 
-/** Light ink on dark backgrounds, dark ink on light ones. */
-function inkFor(background: string): string {
+/** The automatic scale color: light ink on dark backgrounds, dark ink on light ones. */
+export function inkFor(background: string): string {
   return wcagLuminance(background) > 0.4 ? '#000000' : '#ffffff';
 }
 
-export function renderScale(frame: ScaleFrame, style: ScaleStyle, units: Units, background: string): string {
+export function renderScale(
+  frame: ScaleFrame,
+  style: ScaleStyle,
+  units: Units,
+  background: string,
+  color: string | null,
+): string {
   if (style === 'off') return '';
   const useRings = style === 'rings' || frame.radialExponent !== 1;
-  const ink = inkFor(background);
+  const ink = color ?? inkFor(background);
   const fontSize = Math.round(Math.min(frame.width, frame.height) / 75);
   // A halo in the background color keeps labels readable over dense routes.
   const text =
     `font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="${fontSize}" ` +
     `fill="${ink}" stroke="${background}" stroke-width="${fontSize / 3}" stroke-opacity="0.9" stroke-linejoin="round" paint-order="stroke"`;
-  return useRings ? rings(frame, units, ink, text, fontSize) : bar(frame, units, ink, text, fontSize);
+  // Automatic rings stay faint so they don't compete with the routes; a chosen
+  // color is meant to be seen, so it's drawn stronger.
+  const ringOpacity = color ? 0.6 : 0.35;
+  return useRings
+    ? rings(frame, units, ink, text, fontSize, ringOpacity)
+    : bar(frame, units, ink, text, fontSize);
 }
 
 function bar(f: ScaleFrame, units: Units, ink: string, text: string, fontSize: number): string {
@@ -67,7 +78,14 @@ function bar(f: ScaleFrame, units: Units, ink: string, text: string, fontSize: n
 </g>`;
 }
 
-function rings(f: ScaleFrame, units: Units, ink: string, text: string, fontSize: number): string {
+function rings(
+  f: ScaleFrame,
+  units: Units,
+  ink: string,
+  text: string,
+  fontSize: number,
+  opacity: number,
+): string {
   const unitM = METERS_PER[units];
   const radiusPx = (meters: number) => meters ** f.radialExponent * f.pxPerMeter;
   const maxPx = Math.max(f.width, f.height) * 0.75;
@@ -98,7 +116,7 @@ function rings(f: ScaleFrame, units: Units, ink: string, text: string, fontSize:
     )
     .join('');
   return `<g class="scale">
-<g stroke="${ink}" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="3 5" fill="none">${circles}</g>
+<g stroke="${ink}" stroke-opacity="${opacity}" stroke-width="1" stroke-dasharray="3 5" fill="none">${circles}</g>
 <g>${labels}</g>
 </g>`;
 }

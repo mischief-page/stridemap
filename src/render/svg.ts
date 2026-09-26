@@ -21,6 +21,8 @@ export interface StyleOptions {
   /** Distance scale so viewers can judge how long the routes are. */
   scale: ScaleStyle;
   units: Units;
+  /** Color of the scale bar or rings and their labels; null picks white or black to suit the background. */
+  scaleColor: string | null;
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
@@ -35,6 +37,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   blend: 'screen',
   scale: 'bar',
   units: 'km',
+  scaleColor: null,
 };
 
 /**
@@ -105,6 +108,7 @@ ${renderScale(
   style.scale,
   style.units,
   style.background,
+  style.scaleColor,
 )}
 </svg>`;
 }

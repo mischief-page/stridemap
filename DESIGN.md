@@ -54,7 +54,7 @@ So viewers can judge how long routes are, the image carries a distance scale in 
 - **Distance rings**: dashed circles around the anchor at tidy distances, labelled.
 - **None**.
 
-When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale is drawn in white or black depending on how light the background is.
+When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale color can be chosen; by default it is white or black depending on how light the background is. Labels always get a halo in the background color.
 
 ## Privacy
 - Everything runs locally: in the browser (parsing happens in a Web Worker) or in the CLI. Nothing is uploaded.
