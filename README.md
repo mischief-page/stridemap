@@ -14,6 +14,15 @@ Your data never leaves your device. The export is read in your browser (or on yo
 
 No iPhone export handy? Click **Try with sample data**, or open the page with `?sample`.
 
+## Run it as a single file
+
+```sh
+npm install
+npm run build:single   # writes dist-single/stridemap.html
+```
+
+`stridemap.html` is fully self-contained (about 220 KB). Double-click it to open it in your browser. No server or internet connection is needed, and you can copy it anywhere.
+
 ## Develop
 
 Requires Node 20 or later.

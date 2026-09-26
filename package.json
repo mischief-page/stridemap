@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "cli": "tsx scripts/cli.ts"
+    "cli": "tsx scripts/cli.ts",
+    "build:single": "tsc --noEmit && vite build --mode single && mv dist-single/index.html dist-single/stridemap.html"
   },
   "dependencies": {
     "@zip.js/zip.js": "^2.18.2",
@@ -28,6 +29,7 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^5.0.2"
   },
   "engines": {

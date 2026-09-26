@@ -4,6 +4,8 @@ import type { ScaleStyle, Units } from '../render/scale';
 import { DEFAULT_STYLE, renderSvg, type Blend } from '../render/svg';
 import { syntheticWorkouts } from '../sample/synthetic';
 import type { WorkerMessage } from './worker';
+// Inlined so the page also works as a single file opened straight from disk.
+import ParseWorker from './worker?worker&inline';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -92,7 +94,7 @@ function load(list: Workout[]) {
 
 function readExport(file: File) {
   status.textContent = 'Reading export…';
-  const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+  const worker = new ParseWorker();
   worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
     const msg = event.data;
     if (msg.kind === 'progress') {
@@ -110,6 +112,10 @@ function readExport(file: File) {
       worker.terminate();
       status.textContent = `Couldn't read that file: ${msg.message}`;
     }
+  };
+  worker.onerror = (event) => {
+    worker.terminate();
+    status.textContent = `Couldn't read that file: ${event.message || 'the reader stopped unexpectedly'}`;
   };
   worker.postMessage(file);
 }

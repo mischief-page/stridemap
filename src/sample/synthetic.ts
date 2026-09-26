@@ -25,7 +25,7 @@ export function syntheticWorkouts(count = 300, seed = 7): Workout[] {
     const routeRand = onFavourite
       ? mulberry32(favouriteSeeds[Math.floor(rand() * favouriteSeeds.length)]!)
       : rand;
-    const start = t0 + Math.floor(rand() * 600) * 86_400_000 + (6 + Math.floor(rand() * 13)) * 3_600_000;
+    const start = t0 + Math.floor(rand() * 600) * 86_400_000 + Math.round((6 + rand() * 13) * 3_600_000) + i;
 
     const distanceM =
       type === 'running' ? 3000 + routeRand() * 12000 : type === 'walking' ? 1500 + routeRand() * 4000 : 4000 + routeRand() * 10000;
