@@ -166,17 +166,48 @@ engine.onmessage = (event: MessageEvent<EngineMessage>) => {
   } else if (msg.kind === 'rendered') {
     busy = false;
     currentSvg = msg.svg;
-    preview.innerHTML = msg.svg;
     status.textContent = `${msg.shown} of ${msg.withGps} outdoor workouts with GPS shown.`;
     $<HTMLButtonElement>('downloadSvg').disabled = false;
     $<HTMLButtonElement>('downloadPng').disabled = false;
+    void showPreview(msg.svg).then((shown) => {
+      if (shown && !dirty && !busy) preview.classList.remove('updating');
+    });
     if (dirty) render();
-    else preview.classList.remove('updating');
   } else {
     busy = false;
     status.textContent = `Couldn't read that file: ${msg.message}`;
   }
 };
+/**
+ * Shows the SVG as an image rather than live SVG in the page. The browser then
+ * draws the thousands of paths (and the pencil grain filter) once, instead of
+ * again on every scroll or repaint. The new image is fully decoded before it
+ * replaces the old one, so there's no flicker; a result that arrives after a
+ * newer one is dropped.
+ */
+let previewSeq = 0;
+let previewUrl = '';
+async function showPreview(svg: string): Promise<boolean> {
+  const mine = ++previewSeq;
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const img = new Image();
+  img.alt = 'Preview of your route artwork';
+  img.src = url;
+  try {
+    await img.decode();
+  } catch {
+    // Decoding can fail if the image is replaced mid-way; the newer one wins.
+  }
+  if (mine !== previewSeq) {
+    URL.revokeObjectURL(url);
+    return false;
+  }
+  preview.replaceChildren(img);
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = url;
+  return true;
+}
+
 engine.onerror = (event) => {
   busy = false;
   status.textContent = `Something went wrong: ${event.message || 'the engine stopped unexpectedly'}`;

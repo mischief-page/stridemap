@@ -8,7 +8,7 @@ import type { ActivityType, Workout } from '../core/types';
 export function syntheticWorkouts(count = 300, seed = 7): Workout[] {
   const rand = mulberry32(seed);
   const bases = [
-    { lat: 40.0, lon: -100.0, weight: 0.75, block: 110, angle: 0.12 }, // home
+    { lat: 40.0, lon: -100.0, weight: 0.75, block: 110, angle: 0 }, // home: a north-aligned grid, like Chicago's
     { lat: 40.02, lon: -100.05, weight: 0.15, block: 90, angle: -0.3 }, // near work
     { lat: 34.0, lon: -80.0, weight: 0.1, block: 140, angle: 0.5 }, // trips away
   ];

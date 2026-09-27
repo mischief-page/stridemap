@@ -115,27 +115,24 @@ ${renderLegend({ width: W, height: H, padding: P, background: style.background }
 }
 
 /**
- * The last routes drawn. Changing only the legend or scale reuses them, since
- * drawing thousands of routes is the slow part.
+ * The route shapes last drawn, one path per color step. They depend only on
+ * the scene, canvas and line-shape settings, so color, opacity, blend and
+ * overlay changes reuse them. That matters most for the pencil style, where
+ * generating the hand-drawn strokes is the slow part.
  */
-let routesCache: { scene: Scene; key: string; body: string } | null = null;
+let shapesCache: { scene: Scene; key: string; paths: string[] } | null = null;
 
-function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string {
-  const key = JSON.stringify([
-    style.width, style.height, style.padding, style.colorA, style.colorB,
-    style.strokeWidth, style.opacity, style.smoothing, style.blend, style.pencil?.roughness,
-  ]);
-  if (routesCache?.scene === scene && routesCache.key === key) return routesCache.body;
+function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string[] {
+  const key = JSON.stringify([style.width, style.height, style.padding, style.smoothing, style.pencil?.roughness]);
+  if (shapesCache?.scene === scene && shapesCache.key === key) return shapesCache.paths;
 
   const { domain } = scene;
-  const color = interpolate([style.colorA, style.colorB], 'oklch');
-  const palette = Array.from({ length: BINS }, (_, i) => formatHex(color(i / (BINS - 1))));
   const binOf = (v: number) => {
     const t = (v - domain[0]) / (domain[1] - domain[0]);
     return Math.round(Math.min(1, Math.max(0, t)) * (BINS - 1));
   };
 
-  const paths: string[][] = Array.from({ length: BINS }, () => []);
+  const segments: string[][] = Array.from({ length: BINS }, () => []);
   const r = (n: number) => Math.round(n * 10) / 10;
 
   const curved = style.smoothing > 0;
@@ -166,26 +163,31 @@ function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number
         seg = `C${r(c1x)} ${r(c1y)} ${r(c2x)} ${r(c2y)} ${r(sx[b]!)} ${r(sy[b]!)}`;
       }
       if (bin === currentBin) {
-        paths[bin]!.push(seg);
+        segments[bin]!.push(seg);
       } else {
-        paths[bin]!.push(`M${r(sx[a]!)} ${r(sy[a]!)}${seg}`);
+        segments[bin]!.push(`M${r(sx[a]!)} ${r(sy[a]!)}${seg}`);
         currentBin = bin;
       }
     }
   }
 
+  const paths = segments.map((d, i) => {
+    if (!d.length) return '';
+    // Each color step gets its own fixed seed, so the wobble is stable between redraws.
+    return style.pencil ? pencilPath(d.join(''), style.pencil.roughness, i + 1) : d.join('');
+  });
+  shapesCache = { scene, key, paths };
+  return paths;
+}
+
+function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string {
+  const paths = routeShapes(scene, style, scale, ox, oy);
+  const color = interpolate([style.colorA, style.colorB], 'oklch');
   const blendStyle = style.blend === 'normal' ? '' : ` style="mix-blend-mode:${style.blend}"`;
   // Hotter bins are drawn last so they sit on top.
-  const body = paths
-    .map((d, i) => {
-      if (!d.length) return '';
-      // Each color step gets its own fixed seed, so the wobble is stable between redraws.
-      const path = style.pencil ? pencilPath(d.join(''), style.pencil.roughness, i + 1) : d.join('');
-      return `<path stroke="${palette[i]}"${blendStyle} d="${path}"/>`;
-    })
+  return paths
+    .map((d, i) => (d ? `<path stroke="${formatHex(color(i / (BINS - 1)))}"${blendStyle} d="${d}"/>` : ''))
     .join('\n');
-  routesCache = { scene, key, body };
-  return body;
 }
 
 /**
