@@ -21,6 +21,7 @@
   "dependencies": {
     "@zip.js/zip.js": "^2.18.2",
     "culori": "^4.0.2",
+    "roughjs": "^4.6.6",
     "saxes": "^6.0.0"
   },
   "devDependencies": {

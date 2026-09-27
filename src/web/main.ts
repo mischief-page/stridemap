@@ -56,6 +56,10 @@ function readSettings() {
       strokeWidth: Number(input('stroke').value),
       opacity: Number(input('opacity').value),
       smoothing: Number(input('smooth').value),
+      pencil:
+        $<HTMLSelectElement>('lineStyle').value === 'pencil'
+          ? { roughness: Number(input('roughness').value), grain: Number(input('grain').value) }
+          : null,
       blend: $<HTMLSelectElement>('blend').value as Blend,
       scale: $<HTMLSelectElement>('scale').value as ScaleStyle,
       units: $<HTMLSelectElement>('units').value as Units,
@@ -110,6 +114,9 @@ function updateOutputs() {
   $('squashOut').textContent = input('squash').value;
   $('strokeOut').textContent = input('stroke').value;
   $('opacityOut').textContent = input('opacity').value;
+  $('pencilFields').hidden = $<HTMLSelectElement>('lineStyle').value !== 'pencil';
+  $('roughnessOut').textContent = input('roughness').value;
+  $('grainOut').textContent = `${Math.round(Number(input('grain').value) * 100)}%`;
   $('smoothOut').textContent = input('smooth').value === '0' ? 'Off' : `${input('smooth').value} px`;
 }
 
@@ -219,6 +226,15 @@ $('presets').addEventListener('click', (e) => {
   }[range as 'all' | '12m' | 'this' | 'last'];
   input('from').value = from!;
   input('to').value = to!;
+  render();
+});
+
+// Warm paper, light-to-dark graphite, and ink blending so overlaps darken like pencil.
+$('paperPreset').addEventListener('click', () => {
+  input('background').value = '#f3efe6';
+  input('colorA').value = '#a39d92';
+  input('colorB').value = '#1f1d1a';
+  $<HTMLSelectElement>('blend').value = 'multiply';
   render();
 });
 

@@ -54,6 +54,9 @@ Two color modes:
 ### Smoothing
 Optional, measured in image pixels (0–40), so the same setting looks the same whatever the fit or squash. Each route is resampled at even spacing along its length and blurred with a Gaussian of that radius. The window narrows symmetrically near the ends, so every route still starts exactly on the anchor. The smoothed route is then simplified and drawn as a Catmull–Rom curve (cubic Béziers) through the kept points, with tangents taken from the whole route so color changes don't cause kinks. Colors are unchanged: each point keeps its pace or visit value. Heavy smoothing cuts corners, so routes get slightly shorter than true scale.
 
+### Pencil style (experimental)
+An optional hand-drawn look. [Rough.js](https://roughjs.com/) (MIT) redraws each color step's path with a slight wobble and bow, tracing every segment twice a little apart; route corners stay in place. Each color step has a fixed seed, so the preview, download and print match. A fractal-noise SVG filter then removes specks of each stroke to give graphite grain, sized in image units so it looks the same at print resolution. Rough.js's own output is about 6× larger than needed, so its drawing commands are re-serialized compactly (redundant moves dropped, relative offsets); pencil files end up about 4× the size of clean ones. Settings: wobble (Rough.js roughness 0.3–3) and grain (0–1). A "paper & graphite" preset sets a warm paper background, grey-to-black lines and ink blending.
+
 ### Distance scale
 So viewers can judge how long routes are, the image carries a distance scale in km or miles (the web app defaults to miles for US, Liberia and Myanmar locales):
 - **Bar** (default): bottom-left, about a fifth of the drawing wide, rounded to the nearest 1, 2 or 5 × 10ⁿ.

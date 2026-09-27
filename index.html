@@ -96,6 +96,22 @@
             <input type="range" id="smooth" min="0" max="40" step="1" value="0" />
             <small>0 draws routes as recorded. Higher rounds corners into flowing curves. Heavy smoothing cuts corners, so routes get a little shorter than the scale says.</small>
           </label>
+          <label>Line style
+            <select id="lineStyle">
+              <option value="clean">Clean</option>
+              <option value="pencil">Pencil (experimental)</option>
+            </select>
+          </label>
+          <fieldset id="pencilFields" hidden>
+            <label>Wobble <output id="roughnessOut"></output>
+              <input type="range" id="roughness" min="0.3" max="3" step="0.1" value="1" />
+            </label>
+            <label>Grain <output id="grainOut"></output>
+              <input type="range" id="grain" min="0" max="1" step="0.05" value="0.5" />
+            </label>
+            <button type="button" id="paperPreset" class="small">Paper &amp; graphite look</button>
+            <small>Pencil lines are traced twice with a hand-drawn wobble, then given graphite grain. Files are about 4× larger.</small>
+          </fieldset>
           <label>Line width <output id="strokeOut"></output>
             <input type="range" id="stroke" min="0.3" max="4" step="0.1" />
           </label>

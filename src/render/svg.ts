@@ -3,6 +3,7 @@ import type { Scene } from '../core/pipeline';
 import { canvasSize } from './canvas';
 import { DEFAULT_LEGEND, escapeXml, renderLegend, type LegendOptions } from './legend';
 import { renderScale, type ScaleStyle, type Units } from './scale';
+import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
 import { catmullRomControls, smoothPolyline } from './smooth';
 
 export type Blend = 'normal' | 'screen' | 'multiply';
@@ -24,6 +25,8 @@ export interface StyleOptions {
    * values round corners into curves and turn routes into flowing strokes.
    */
   smoothing: number;
+  /** Hand-drawn pencil look; null draws clean lines. */
+  pencil: PencilOptions | null;
   /** 'screen' makes overlaps glow on dark backgrounds; 'multiply' darkens on light ones. */
   blend: Blend;
   /** Distance scale so viewers can judge how long the routes are. */
@@ -43,12 +46,15 @@ export const DEFAULT_STYLE: StyleOptions = {
   strokeWidth: 1.2,
   opacity: 0.7,
   smoothing: 0,
+  pencil: null,
   blend: 'screen',
   scale: 'bar',
   units: 'km',
   scaleColor: null,
   legend: DEFAULT_LEGEND,
 };
+
+const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
 
 /**
  * Number of color steps. Segments are grouped by step into one <path> each,
@@ -73,6 +79,7 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
   const oy = H / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
 
   const body = drawRoutes(scene, style, scale, ox, oy);
+  const grain = style.pencil !== null && style.pencil.grain > 0;
 
   // The inner <svg> clips everything to the canvas. The outer one's viewport can
   // be wider than the image when it's embedded in a box of another shape, and
@@ -81,7 +88,8 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
 <title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
 <svg width="${W}" height="${H}">
 <rect width="100%" height="100%" fill="${style.background}"/>
-<g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate">
+${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
+<g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
 ${body}
 </g>
 ${renderScale(
@@ -115,7 +123,7 @@ let routesCache: { scene: Scene; key: string; body: string } | null = null;
 function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string {
   const key = JSON.stringify([
     style.width, style.height, style.padding, style.colorA, style.colorB,
-    style.strokeWidth, style.opacity, style.smoothing, style.blend,
+    style.strokeWidth, style.opacity, style.smoothing, style.blend, style.pencil?.roughness,
   ]);
   if (routesCache?.scene === scene && routesCache.key === key) return routesCache.body;
 
@@ -169,7 +177,12 @@ function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number
   const blendStyle = style.blend === 'normal' ? '' : ` style="mix-blend-mode:${style.blend}"`;
   // Hotter bins are drawn last so they sit on top.
   const body = paths
-    .map((d, i) => (d.length ? `<path stroke="${palette[i]}"${blendStyle} d="${d.join('')}"/>` : ''))
+    .map((d, i) => {
+      if (!d.length) return '';
+      // Each color step gets its own fixed seed, so the wobble is stable between redraws.
+      const path = style.pencil ? pencilPath(d.join(''), style.pencil.roughness, i + 1) : d.join('');
+      return `<path stroke="${palette[i]}"${blendStyle} d="${path}"/>`;
+    })
     .join('\n');
   routesCache = { scene, key, body };
   return body;
