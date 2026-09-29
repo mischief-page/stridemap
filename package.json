@@ -18,7 +18,8 @@
     "cli": "tsx scripts/cli.ts",
     "build:single": "tsc --noEmit && vite build --mode single && mv dist-single/index.html dist-single/stridemap.html",
     "sample-export": "tsx scripts/make-sample-export.ts",
-    "test:e2e": "npm run build:single && playwright test"
+    "test:e2e": "npm run build:single && playwright test",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@zip.js/zip.js": "^2.18.2",
@@ -34,7 +35,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vite-plugin-singlefile": "^2.3.3",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.2",
+    "wrangler": "^4.143.1"
   },
   "engines": {
     "node": ">=20"

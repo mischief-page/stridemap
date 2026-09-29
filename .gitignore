@@ -14,3 +14,4 @@ out/
 e2e/.cache/
 test-results/
 playwright-report/
+.wrangler/

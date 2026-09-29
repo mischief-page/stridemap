@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // A static site: Cloudflare serves the Vite build from its edge, with no
+  // server code. Served at https://stridemap.<account>.workers.dev until a
+  // custom domain is attached.
+  "name": "stridemap",
+  "compatibility_date": "2026-09-29",
+  "assets": {
+    "directory": "./dist"
+  }
+}
