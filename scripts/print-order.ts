@@ -10,24 +10,27 @@
  *   recipient as PRINT_TO_NAME, PRINT_TO_EMAIL, PRINT_TO_LINE1, PRINT_TO_LINE2,
  *   PRINT_TO_CITY, PRINT_TO_STATE, PRINT_TO_ZIP (US addresses).
  *
- * With a live key it only shows the quote unless --confirm-live is given,
- * because live orders are charged and shipped.
+ * Orders go to Prodigi's free test environment unless --live is given; a live
+ * order also needs --confirm-live, because live orders are charged and shipped.
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { basename } from 'node:path';
 import { parseArgs } from 'node:util';
-import { createOrder, isLive, quote } from '../src/print/prodigi';
+import { createOrder, isLive, quote, useLive } from '../src/print/prodigi';
 
 const { values } = parseArgs({
   options: {
     file: { type: 'string' },
     sku: { type: 'string', default: 'GLOBAL-FAP-18X24' },
     color: { type: 'string' },
+    'image-url': { type: 'string' },
+    live: { type: 'boolean', default: false },
     'confirm-live': { type: 'boolean', default: false },
   },
 });
-if (!values.file) throw new Error('Pass --file with a print file from npm run print-file.');
+if (values.live) useLive();
+if (!values.file && !values['image-url']) throw new Error('Pass --file (a print file from npm run print-file) or --image-url.');
 
 const env = (name: string) => {
   const v = process.env[name];
@@ -44,10 +47,13 @@ if (isLive() && !values['confirm-live']) {
   process.exit(0);
 }
 
-// Unguessable name, so files can't be found by listing guesses.
-const key = `proofs/${randomUUID()}-${basename(values.file)}`;
-execFileSync('npx', ['wrangler', 'r2', 'object', 'put', `${env('R2_BUCKET')}/${key}`, '--file', values.file, '--content-type', 'image/png', '--remote'], { stdio: 'inherit' });
-const imageUrl = `${env('R2_PUBLIC_URL')}/${key}`;
+let imageUrl = values['image-url'];
+if (!imageUrl) {
+  // Unguessable name, so files can't be found by listing guesses.
+  const key = `proofs/${randomUUID()}-${basename(values.file!)}`;
+  execFileSync('npx', ['wrangler', 'r2', 'object', 'put', `${env('R2_BUCKET')}/${key}`, '--file', values.file!, '--content-type', 'image/png', '--remote'], { stdio: 'inherit' });
+  imageUrl = `${env('R2_PUBLIC_URL')}/${key}`;
+}
 
 const order = await createOrder(
   { ...item, imageUrl },

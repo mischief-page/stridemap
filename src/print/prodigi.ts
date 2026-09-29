@@ -1,14 +1,21 @@
 /**
  * A thin client for Prodigi's print API (https://www.prodigi.com/print-api/docs/reference/).
- * The key and base URL come from the environment (PRODIGI_API_KEY, PRODIGI_API_URL),
- * kept in .env.local for local use, never in the repo.
+ * Keys come from the environment (.env.local locally, never the repo). The free
+ * test environment (PRODIGI_API_KEY / PRODIGI_API_URL) is the default; useLive()
+ * switches to PRODIGI_LIVE_API_KEY / PRODIGI_LIVE_API_URL, where orders are real.
  */
-const baseUrl = () => process.env.PRODIGI_API_URL ?? 'https://api.sandbox.prodigi.com/v4.0';
-export const isLive = () => !baseUrl().includes('sandbox');
+let live = false;
+export function useLive(): void {
+  live = true;
+}
+const baseUrl = () =>
+  (live ? process.env.PRODIGI_LIVE_API_URL : process.env.PRODIGI_API_URL) ??
+  (live ? 'https://api.prodigi.com/v4.0' : 'https://api.sandbox.prodigi.com/v4.0');
+export const isLive = () => live;
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const key = process.env.PRODIGI_API_KEY;
-  if (!key) throw new Error('PRODIGI_API_KEY is not set (put it in .env.local).');
+  const key = live ? process.env.PRODIGI_LIVE_API_KEY : process.env.PRODIGI_API_KEY;
+  if (!key) throw new Error(`${live ? 'PRODIGI_LIVE_API_KEY' : 'PRODIGI_API_KEY'} is not set (put it in .env.local).`);
   const res = await fetch(`${baseUrl()}${path}`, {
     ...init,
     headers: { 'X-API-Key': key, 'Content-Type': 'application/json', ...init?.headers },

@@ -68,14 +68,14 @@ Configuration is in `wrangler.jsonc`; security headers are in `public/_headers`.
 
 ## Print proofs (Prodigi)
 
-Settings live in `.env.local` (never committed): `PRODIGI_API_KEY`, `PRODIGI_API_URL`, `R2_BUCKET`, `R2_PUBLIC_URL`, and the recipient (`PRINT_TO_NAME`, `PRINT_TO_LINE1`, `PRINT_TO_CITY`, `PRINT_TO_STATE`, `PRINT_TO_ZIP`, optional `PRINT_TO_EMAIL`, `PRINT_TO_LINE2`).
+Settings live in `.env.local` (never committed): `PRODIGI_API_KEY` and `PRODIGI_API_URL` for Prodigi's free test environment (the default), `PRODIGI_LIVE_API_KEY` and `PRODIGI_LIVE_API_URL` for real orders (`--live`), `R2_BUCKET`, `R2_PUBLIC_URL`, and the recipient (`PRINT_TO_NAME`, `PRINT_TO_LINE1`, `PRINT_TO_CITY`, `PRINT_TO_STATE`, `PRINT_TO_ZIP`, optional `PRINT_TO_EMAIL`, `PRINT_TO_LINE2`).
 
 ```sh
 npm run print-file -- --preset ember --sku GLOBAL-FAP-18X24     # 300 DPI print file in out/print/
 npm run print-order -- --file out/print/ember-GLOBAL-FAP-18X24.png --sku GLOBAL-FAP-18X24
 ```
 
-With a live key, `print-order` shows the price and stops unless given `--confirm-live`: live orders are charged and shipped.
+`print-order` uses the free test environment unless given `--live`; a live order also needs `--confirm-live`, since live orders are charged and shipped. `--image-url` skips the upload and uses an image that's already online.
 
 ## How it works
 
