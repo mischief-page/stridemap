@@ -200,14 +200,22 @@
           </fieldset>
         </section>
 
-        <section class="row">
-          <button type="button" id="downloadSvg" disabled>Download SVG</button>
-          <button type="button" id="downloadPng" disabled>Download PNG</button>
+        <section>
+          <label class="inline"><input type="checkbox" id="mark" checked /> Add a small “made with stridemap” mark</label>
+          <div class="row downloads">
+            <button type="button" id="downloadSvg" disabled>Download SVG</button>
+            <button type="button" id="downloadPng" disabled>Download PNG</button>
+          </div>
         </section>
       </aside>
 
       <figure id="preview" aria-label="Route visualization"></figure>
     </main>
+
+    <footer>
+      <a href="privacy.html">Privacy</a> · Your data never leaves this browser ·
+      <a href="https://github.com/mischief-page/stridemap">Open source on GitHub</a>
+    </footer>
 
     <script type="module" src="/src/web/main.ts"></script>
   </body>

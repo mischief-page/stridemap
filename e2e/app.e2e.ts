@@ -101,3 +101,23 @@ test('downloads the SVG', async ({ page }) => {
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#downloadSvg')]);
   expect(download.suggestedFilename()).toBe('stridemap.svg');
 });
+
+test('the made-with mark is on by default and can be turned off', async ({ page }) => {
+  await page.goto(`${PAGE}?sample`);
+  await settled(page);
+  expect(await previewSvg(page)).toContain('>made with stridemap<');
+  await page.uncheck('#mark');
+  await settled(page);
+  expect(await previewSvg(page)).not.toContain('made with');
+  // Keeping or removing the mark is the person's choice, not part of the style.
+  expect(await activePreset(page)).toBe('afterglow');
+});
+
+test('the footer links to the privacy page', async ({ page }) => {
+  await page.goto(PAGE);
+  await page.click('footer >> text=Privacy');
+  await expect(page.locator('h1')).toHaveText('Privacy');
+  await expect(page.locator('.lead')).toContainText('never leave your device');
+  await page.click('text=Back to stridemap');
+  await expect(page.locator('#presetCards .preset-card')).toHaveCount(5);
+});

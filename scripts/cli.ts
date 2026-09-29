@@ -33,6 +33,7 @@ const FLAGS: Record<string, Flag> = {
   title: str('title'),
   name: str('name'),
   units: str('units'),
+  'no-mark': { type: 'boolean', apply: (v, s) => void (s.mark = !v) },
   mode: str('colorMode'),
   fit: num('fit'),
   squash: num('squash'),

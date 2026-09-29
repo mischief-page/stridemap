@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "cli": "tsx scripts/cli.ts",
-    "build:single": "tsc --noEmit && vite build --mode single && mv dist-single/index.html dist-single/stridemap.html",
+    "build:single": "tsc --noEmit && vite build --mode single && node scripts/finish-single.mjs",
     "sample-export": "tsx scripts/make-sample-export.ts",
     "test:e2e": "npm run build:single && playwright test",
     "deploy": "npm run build && wrangler deploy"

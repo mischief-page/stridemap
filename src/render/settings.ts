@@ -20,6 +20,8 @@ export interface EditorState {
   title: string;
   name: string;
   units: Units;
+  /** The "made with" mark on images; the person's choice, so presets leave it alone. */
+  mark: boolean;
 
   // How it looks.
   colorMode: ColorMode;
@@ -72,6 +74,7 @@ export const DEFAULT_STATE: EditorState = {
   title: '',
   name: '',
   units: DEFAULT_STYLE.units,
+  mark: DEFAULT_STYLE.mark,
   colorMode: 'pace',
   fit: 95,
   squash: 1,
@@ -132,6 +135,7 @@ export function toRenderRequest(
       units: s.units,
       scaleColor: s.scaleColor,
       textBand: s.textBand,
+      mark: s.mark,
       legend: {
         show: s.legendShow,
         title: s.title,

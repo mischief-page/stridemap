@@ -21,6 +21,7 @@ const CONTROLS: { [K in keyof EditorState]: Kind } = {
   title: 'value',
   name: 'value',
   units: 'value',
+  mark: 'checkbox',
   colorMode: 'radio',
   fit: 'number',
   squash: 'number',

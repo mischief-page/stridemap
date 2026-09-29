@@ -33,3 +33,22 @@ describe('route shape cache', () => {
     expect(b).toContain('#ff0000');
   });
 });
+
+describe('made-with mark', () => {
+  const prepared = prepareWorkouts(syntheticWorkouts(20));
+  const scene = buildScene(prepared, { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
+  const mark = (svg: string) => svg.match(/<text class="mark" x="([\d.]+)"[^>]*text-anchor="(\w+)"[^>]*>([^<]*)</);
+
+  it('is on by default and can be turned off', () => {
+    expect(mark(renderSvg(scene, DEFAULT_STYLE))?.[3]).toBe('made with stridemap');
+    expect(renderSvg(scene, { ...DEFAULT_STYLE, mark: false })).not.toContain('class="mark"');
+  });
+
+  it('sits on the side the scale bar is not', () => {
+    // Bar on the left by default: mark on the right.
+    expect(mark(renderSvg(scene, DEFAULT_STYLE))?.[2]).toBe('end');
+    // Legend bottom-left moves the bar right: mark goes left.
+    const legendLeft = { ...DEFAULT_STYLE, legend: { ...DEFAULT_LEGEND, show: true, title: 'T', position: 'bottom-left' as const } };
+    expect(mark(renderSvg(scene, legendLeft))?.[2]).toBe('start');
+  });
+});

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy · stridemap</title>
+    <meta name="description" content="How stridemap handles your data: your health and location data never leave your browser." />
+    <style>
+      :root {
+        --bg: #f6f5f2; --panel: #ffffff; --text: #1c1b19; --muted: #6b6760; --line: #e2dfd8; --accent: #1d4ed8;
+        color-scheme: light dark;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0e1016; --panel: #161923; --text: #e8e6e1; --muted: #9a968d; --line: #2a2e3a; --accent: #7aa2ff; }
+      }
+      body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.55; }
+      main { max-width: 680px; margin: 0 auto; padding: 32px 16px 48px; }
+      h1 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 4px; }
+      h2 { font-size: 1.05rem; margin: 28px 0 6px; }
+      p, li { margin: 6px 0; }
+      .lead { font-size: 1.1rem; }
+      .muted { color: var(--muted); font-size: 0.9rem; }
+      a { color: var(--accent); }
+      .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px 12px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p><a href="./">← Back to stridemap</a></p>
+      <h1>Privacy</h1>
+      <p class="muted">Last updated September 29, 2026</p>
+
+      <div class="box">
+        <p class="lead"><strong>Your health and location data never leave your device.</strong> stridemap reads your export and draws your picture entirely inside your web browser. Nothing you load is uploaded, stored, or seen by anyone else, including us.</p>
+      </div>
+
+      <h2>Your workouts</h2>
+      <ul>
+        <li>When you choose an Apple Health export (or try the sample data), your browser reads it and draws the picture on your own computer or phone. The file is never sent anywhere.</li>
+        <li>Nothing is saved after you close the page.</li>
+        <li>The code is open source, so anyone can check this: <a href="https://github.com/mischief-page/stridemap">github.com/mischief-page/stridemap</a>.</li>
+      </ul>
+
+      <h2>The images you download</h2>
+      <ul>
+        <li>Every route is drawn from a shared starting point, so the image contains no real map coordinates and can't be used to find where you live.</li>
+        <li>A very distinctive route could still be recognizable to someone who knows the area, so think about that before sharing.</li>
+        <li>Anything you type into the legend, like a title or your name, becomes part of the image.</li>
+      </ul>
+
+      <h2>What we collect</h2>
+      <ul>
+        <li>Nothing. There are no accounts, cookies, analytics, ads or tracking scripts.</li>
+        <li>The site is hosted by Cloudflare, which handles basic request information (such as IP addresses) to deliver pages and block abuse, under <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. We don't add any tracking of our own.</li>
+      </ul>
+
+      <h2>If this changes</h2>
+      <p>If we add anything that collects information, such as a way to order prints or an email list, we'll update this page first and say exactly what's collected and why.</p>
+
+      <h2>Questions</h2>
+      <p>Open an issue on <a href="https://github.com/mischief-page/stridemap/issues">GitHub</a>.</p>
+    </main>
+  </body>
+</html>

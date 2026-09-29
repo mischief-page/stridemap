@@ -1,5 +1,6 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
+import { renderMark } from './brand';
 import { canvasSize } from './canvas';
 import { round1 as r } from './format';
 import { DEFAULT_LEGEND, escapeXml, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from './legend';
@@ -36,6 +37,8 @@ export interface StyleOptions {
   /** Color of the scale bar or rings and their labels; null picks white or black to suit the background. */
   scaleColor: string | null;
   legend: LegendOptions;
+  /** The small "made with" mark in the bottom margin. */
+  mark: boolean;
   /**
    * Give the legend its own band at the top or bottom of the poster, so the
    * routes never run underneath the text.
@@ -59,6 +62,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   scaleColor: null,
   legend: DEFAULT_LEGEND,
   textBand: false,
+  mark: true,
 };
 
 const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
@@ -101,6 +105,10 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
   const oy = artTop + artH / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
 
   const body = drawRoutes(scene, style, scale, ox, oy);
+  // Keep the scale bar out of the legend's way, and the mark out of the bar's.
+  const barSide = style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left';
+  const barShown = style.scale !== 'off' && !scaleUsesRings(style.scale, scene.radialExponent);
+  const markSide = barShown && barSide === 'right' ? 'left' : 'right';
   const grain = style.pencil !== null && style.pencil.grain > 0;
   const scaleSvg = renderScale(
     {
@@ -112,7 +120,7 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
       anchorY: oy,
       radialExponent: scene.radialExponent,
       // Keep the bar out of the legend's way.
-      barSide: style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left',
+      barSide,
     },
     style.scale,
     style.units,
@@ -139,6 +147,7 @@ ${rings ? scaleSvg : ''}
 </svg>
 ${rings ? '' : scaleSvg}
 ${renderLegend(frame, style.legend, facts)}
+${style.mark ? renderMark(frame, markSide) : ''}
 </svg>
 </svg>`;
 }
