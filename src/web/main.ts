@@ -120,9 +120,18 @@ function mapStatus(map: MapResult | null): string {
       offline: "Couldn't load the map (are you offline?). Routes are drawn without it.",
     }[map.reason];
   }
-  const where = `${map.at.lat.toFixed(4)}, ${map.at.lon.toFixed(4)}`;
-  const left = map.excluded ? ` ${map.excluded} starting elsewhere are left out.` : '';
-  return `Map centred on ${map.detected ? 'where most routes start' : where}. ${map.shown} routes on it.${left}`;
+  const where = map.detected ? 'where most routes start' : `${map.at.lat.toFixed(4)}, ${map.at.lon.toFixed(4)}`;
+  const status = [`Map centred on ${where}. ${map.near} routes start here.`];
+  if (map.elsewhere) {
+    status.push(
+      {
+        omit: `${map.elsewhere} starting elsewhere are left out.`,
+        true: `${map.elsewhereDrawn} of ${map.elsewhere} starting elsewhere cross the picture and are drawn.`,
+        anchored: `${map.elsewhere} starting elsewhere are drawn from this point.`,
+      }[map.others],
+    );
+  }
+  return status.join(' ');
 }
 
 // Address search only on request: it's the one thing that sends text off the device.

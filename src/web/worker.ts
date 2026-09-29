@@ -1,11 +1,12 @@
 /// <reference lib="webworker" />
 import { Reader } from '@zip.js/zip.js';
-import { buildScene, prepareWorkouts, type Filters, type LayoutOptions, type PreparedWorkout, type Scene } from '../core/pipeline';
+import { buildScene, prepareWorkouts, type Filters, type LayoutOptions, type OtherStarts, type PreparedWorkout, type Scene } from '../core/pipeline';
 import type { Workout } from '../core/types';
 import { readHealthExport, type Progress } from '../parse/health-export';
 import { renderSvg, visibleMeters, type StyleOptions } from '../render/svg';
 import type { MapRequest } from '../render/settings';
-import { detectHome, NEAR_RADIUS_M, type GeoPoint } from '../map/anchor';
+import { detectHome, type GeoPoint } from '../map/anchor';
+import { mapScene } from '../map/scene';
 import { MapLoader, type MapFeatures } from '../map/tiles';
 import { syntheticWorkouts } from '../sample/synthetic';
 
@@ -24,7 +25,7 @@ export type EngineRequest =
 
 /** How the map went: where it's centred, how many routes are on it, or why it isn't shown. */
 export type MapResult =
-  | { ok: true; at: GeoPoint; detected: boolean; shown: number; excluded: number }
+  | { ok: true; at: GeoPoint; detected: boolean; others: OtherStarts; near: number; elsewhere: number; elsewhereDrawn: number }
   | { ok: false; reason: 'no-point' | 'no-routes' | 'offline'; message?: string };
 
 export type EngineMessage =
@@ -108,6 +109,8 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
   }
 };
 
+const pick = ({ near, elsewhere, elsewhereDrawn }: NonNullable<Scene['geoAnchor']>) => ({ near, elsewhere, elsewhereDrawn });
+
 function sceneFor(filters: Filters, layout: LayoutOptions): Scene {
   const key = JSON.stringify([filters, layout]);
   if (sceneCache?.key !== key) sceneCache = { key, scene: buildScene(workouts, filters, layout) };
@@ -129,8 +132,8 @@ async function draw(filters: Filters, layout: LayoutOptions, style: StyleOptions
     return { svg: renderSvg(scene, style), scene, map: { ok: false as const, reason, message } };
   };
   if (!at) return fail('no-point');
-  const scene = sceneFor(filters, { ...layout, geoAnchor: { lat: at.lat, lon: at.lon, radiusM: NEAR_RADIUS_M } });
-  if (!scene.workoutCount) return fail('no-routes');
+  const scene = mapScene(sceneFor, filters, layout, style, at, map.others);
+  if (!scene.geoAnchor!.near) return fail('no-routes');
   let features: MapFeatures;
   try {
     features = await mapLoader.load({ lat: at.lat, lon: at.lon }, visibleMeters(scene, style));
@@ -140,6 +143,6 @@ async function draw(filters: Filters, layout: LayoutOptions, style: StyleOptions
   return {
     svg: renderSvg(scene, style, features),
     scene,
-    map: { ok: true as const, at: { lat: at.lat, lon: at.lon }, detected: map.at === 'detected', shown: scene.workoutCount, excluded: scene.geoAnchor!.excluded },
+    map: { ok: true as const, at: { lat: at.lat, lon: at.lon }, detected: map.at === 'detected', others: map.others, ...pick(scene.geoAnchor!) },
   };
 }

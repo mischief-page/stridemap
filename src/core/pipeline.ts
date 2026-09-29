@@ -20,11 +20,32 @@ export interface LayoutOptions {
   /** 1 is true scale; lower values pull long routes inward. */
   radialExponent: number;
   /**
-   * Draw routes in their true position around this real-world point, for
-   * laying them over a map. Only routes starting within radiusM are drawn,
-   * and squashing is off (it would pull routes off the streets).
+   * Lay routes over a map around this real-world point. Routes starting
+   * within radiusM are drawn in their true position, and the fit is based on
+   * them. Squashing is off (it would pull routes off the streets).
    */
-  geoAnchor?: { lat: number; lon: number; radiusM: number } | null;
+  geoAnchor?: GeoAnchor | null;
+}
+
+/**
+ * What to do with routes that start further than radiusM from the map's point:
+ * 'omit' leaves them out; 'true' draws them where they really went (so they
+ * match the map too), keeping only those that cross `view`; 'anchored' draws
+ * them from the map's point, as without a map (they won't match the streets).
+ */
+export type OtherStarts = 'omit' | 'true' | 'anchored';
+
+export interface GeoAnchor {
+  lat: number;
+  lon: number;
+  radiusM: number;
+  others: OtherStarts;
+  /**
+   * The area shown, in meters around the point. With 'true', routes that
+   * never cross it are left out, so an image never carries routes (and
+   * places) it doesn't show. Without it, the fitted bounds are used.
+   */
+  view?: Bounds | null;
 }
 
 export interface Scene {
@@ -45,8 +66,11 @@ export interface Scene {
   totalDistanceM: number;
   /** Which activity types are drawn, for wording like "412 runs". */
   activityTypes: ActivityType[];
-  /** With a geoAnchor: the point, and how many selected routes started too far from it to draw. */
-  geoAnchor: { lat: number; lon: number; excluded: number } | null;
+  /**
+   * With a geoAnchor: the point, how many routes start near it, how many
+   * start elsewhere, and how many of those are drawn.
+   */
+  geoAnchor: { lat: number; lon: number; near: number; elsewhere: number; elsewhereDrawn: number } | null;
 }
 
 /**
@@ -119,16 +143,35 @@ function frequencyValues(selected: PreparedWorkout[]): Map<string, Float32Array>
 export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: LayoutOptions): Scene {
   const matching = filterWorkouts(workouts, filters);
   const geo = opts.geoAnchor ?? null;
-  const selected = geo
-    ? matching.filter((w) => flatDistance(geo.lat, geo.lon, w.lat[0]!, w.lon[0]!) <= geo.radiusM)
-    : matching;
   const radialExponent = geo ? 1 : opts.radialExponent;
+
+  // Each workout with its shape in the drawing's frame.
+  let placed: { w: PreparedWorkout; local: LocalTrack; near: boolean }[];
+  let nearCount = 0;
+  let bounds: Bounds | null = null;
+  if (!geo) {
+    placed = matching.map((w) => ({ w, local: w.local, near: true }));
+  } else {
+    placed = [];
+    for (const w of matching) {
+      const near = flatDistance(geo.lat, geo.lon, w.lat[0]!, w.lon[0]!) <= geo.radiusM;
+      if (near) nearCount++;
+      if (near || geo.others === 'true') placed.push({ w, local: placeAround(w, geo), near });
+      else if (geo.others === 'anchored') placed.push({ w, local: w.local, near });
+    }
+    if (geo.others === 'true') {
+      // Fit to the routes that start at the point; others are kept where they cross the picture.
+      const nearTracks = placed.filter((p) => p.near).map((p) => p.local);
+      bounds = fitBounds(nearTracks.length ? nearTracks : placed.map((p) => p.local), opts.fitPercentile);
+      const view = geo.view ?? bounds;
+      placed = placed.filter((p) => p.near || overlaps(p.local.bbox, view));
+    }
+  }
+
+  const selected = placed.map((p) => p.w);
   const heat = opts.colorMode === 'frequency' ? frequencyValues(selected) : null;
   const tracks = compressRadially(
-    selected.map((w) => {
-      const local = geo ? placeAround(w, geo) : w.local;
-      return heat ? { ...local, value: heat.get(w.id)! } : local;
-    }),
+    placed.map(({ w, local }) => (heat ? { ...local, value: heat.get(w.id)! } : local)),
     radialExponent,
   );
 
@@ -138,19 +181,30 @@ export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: 
     first = Math.min(first, w.start);
     last = Math.max(last, w.start);
   }
+  const near = placed.filter((p) => p.near).length;
 
   return {
     tracks,
-    bounds: fitBounds(tracks, opts.fitPercentile),
+    bounds: bounds ?? fitBounds(tracks, opts.fitPercentile),
     domain: colorDomain(tracks, opts.colorMode),
     radialExponent,
     workoutCount: tracks.length,
     totalDistanceM: selected.reduce((sum, w) => sum + w.distanceM, 0),
     activityTypes: [...new Set(selected.map((w) => w.type))],
     dateRange: selected.length ? [first, last] : null,
-    geoAnchor: geo ? { lat: geo.lat, lon: geo.lon, excluded: matching.length - selected.length } : null,
+    geoAnchor: geo
+      ? {
+          lat: geo.lat,
+          lon: geo.lon,
+          near,
+          elsewhere: matching.length - nearCount,
+          elsewhereDrawn: placed.length - near,
+        }
+      : null,
   };
 }
+
+const overlaps = (a: Bounds, b: Bounds) => a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
 
 /** A route in meters east and north of a real-world point, rather than of its own start. */
 function placeAround(w: PreparedWorkout, at: { lat: number; lon: number }): LocalTrack {

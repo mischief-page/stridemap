@@ -181,8 +181,14 @@ test('draws a street map behind the routes when asked, from mocked tiles', async
   expect(svg).toContain('class="map"');
   expect(svg).toContain('OpenStreetMap contributors');
   expect(tiles.length).toBeGreaterThan(0);
+  // By default routes from elsewhere are drawn where they went, if they cross the picture.
+  await expect(page.locator('#mapStatus')).toContainText('229 routes start here');
+  await expect(page.locator('#mapStatus')).toContainText('of 71 starting elsewhere cross the picture');
+  await page.check('#mapOthers input[value="omit"]');
   await expect(page.locator('#status')).toContainText('229 of 300');
   await expect(page.locator('#mapStatus')).toContainText('71 starting elsewhere are left out');
+  await page.check('#mapOthers input[value="anchored"]');
+  await expect(page.locator('#status')).toContainText('300 of 300');
   await expect(page.locator('#squash')).toBeDisabled();
 
   // A point typed by hand; far from every route, so the map is off and routes are drawn as usual.

@@ -212,7 +212,7 @@
           <summary>Map <span class="hint">optional</span></summary>
           <label class="inline"><input type="checkbox" id="mapShow" /> Draw a street map behind the routes</label>
           <fieldset id="mapFields" disabled>
-            <small>For when most routes start from the same place. Routes are drawn where they really went; those starting more than 300 m from the map's point are left out.</small>
+            <small>For when most routes start from the same place. Routes starting there are drawn where they really went, so they follow the streets on the map.</small>
             <fieldset id="mapPlace">
               <label><input type="radio" name="mapPlace" value="detected" checked /> Where most routes start</label>
               <label><input type="radio" name="mapPlace" value="custom" /> A place I choose</label>
@@ -225,6 +225,12 @@
               </div>
               <small id="mapFindNote">Find sends only the address you typed to OpenStreetMap's Nominatim search.</small>
             </div>
+            <fieldset id="mapOthers">
+              <legend>Routes starting elsewhere (over 300 m away)</legend>
+              <label><input type="radio" name="mapOthers" value="true" checked /> Where they really went <small>(if they cross the picture)</small></label>
+              <label><input type="radio" name="mapOthers" value="anchored" /> From the map's point <small>(won't match the streets)</small></label>
+              <label><input type="radio" name="mapOthers" value="omit" /> Leave out</label>
+            </fieldset>
             <label>Map strength <output id="mapOpacityOut"></output>
               <input type="range" id="mapOpacity" min="0.05" max="0.8" step="0.05" value="0.25" />
             </label>

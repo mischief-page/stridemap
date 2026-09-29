@@ -25,6 +25,7 @@ const CONTROLS: { [K in keyof EditorState]: Kind } = {
   mapShow: 'checkbox',
   mapPlace: 'radio',
   mapAt: 'value',
+  mapOthers: 'radio',
   mapOpacity: 'number',
   colorMode: 'radio',
   fit: 'number',

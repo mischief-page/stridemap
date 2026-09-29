@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { detectHome } from '../src/map/anchor';
+import { mapScene } from '../src/map/scene';
 import { geocode } from '../src/map/geocode';
 import { decodeTile, emptyFeatures, MAP_ATTRIBUTION, MapLoader, tilesFor } from '../src/map/tiles';
 import { DEFAULT_STATE, parseLatLon, toRenderRequest } from '../src/render/settings';
@@ -124,22 +125,54 @@ describe('map settings and drawing', () => {
   it('asks for the map only when it is on', () => {
     expect(toRenderRequest(DEFAULT_STATE).map).toBeNull();
     expect(toRenderRequest(DEFAULT_STATE).style.map).toBeNull();
-    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true }).map).toEqual({ at: 'detected' });
-    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mapPlace: 'custom', mapAt: '1, 2' }).map).toEqual({ at: { lat: 1, lon: 2 } });
-    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mapPlace: 'custom', mapAt: 'x' }).map).toEqual({ at: null });
+    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true }).map).toEqual({ at: 'detected', others: 'true' });
+    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mapPlace: 'custom', mapAt: '1, 2' }).map).toEqual({ at: { lat: 1, lon: 2 }, others: 'true' });
+    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mapPlace: 'custom', mapAt: 'x' }).map).toEqual({ at: null, others: 'true' });
   });
 
-  it('places routes around the point, leaves out far starts and turns squash off', () => {
+  const geo = (others: 'omit' | 'true' | 'anchored') => ({ lat: home.lat, lon: home.lon, radiusM: 300, others });
+
+  it('places routes around the point and turns squash off', () => {
     const { filters, layout } = toRenderRequest({ ...DEFAULT_STATE, squash: 0.5 });
-    const scene = buildScene(prepared, filters, { ...layout, geoAnchor: { ...home, radiusM: 300 } });
+    const scene = buildScene(prepared, filters, { ...layout, geoAnchor: geo('omit') });
     expect(scene.radialExponent).toBe(1);
-    expect(scene.geoAnchor!.excluded).toBeGreaterThan(0);
-    expect(scene.workoutCount + scene.geoAnchor!.excluded).toBe(prepared.length);
+    const g = scene.geoAnchor!;
+    expect(g.elsewhere).toBeGreaterThan(0);
+    expect(g.near + g.elsewhere).toBe(prepared.length);
+    expect(scene.workoutCount).toBe(g.near);
+    expect(g.elsewhereDrawn).toBe(0);
+  });
+
+  it('draws routes from elsewhere from the map point when asked', () => {
+    const { filters, layout } = toRenderRequest(DEFAULT_STATE);
+    const scene = buildScene(prepared, filters, { ...layout, geoAnchor: geo('anchored') });
+    expect(scene.workoutCount).toBe(prepared.length);
+    expect(scene.geoAnchor!.elsewhereDrawn).toBe(scene.geoAnchor!.elsewhere);
+  });
+
+  it('draws routes from elsewhere where they went, only if they cross the picture, fitting to the local ones', () => {
+    const state = { ...DEFAULT_STATE, mapShow: true };
+    const { filters, layout, style } = toRenderRequest(state);
+    const build = (f: typeof filters, l: typeof layout) => buildScene(prepared, f, l);
+    const omit = mapScene(build, filters, layout, style, home, 'omit');
+    const scene = mapScene(build, filters, layout, style, home, 'true');
+    const g = scene.geoAnchor!;
+    // The nearby "work" routes (~5 km away) cross the picture; trips to another state don't.
+    expect(g.elsewhereDrawn).toBeGreaterThan(0);
+    expect(g.elsewhereDrawn).toBeLessThan(g.elsewhere);
+    expect(scene.workoutCount).toBe(g.near + g.elsewhereDrawn);
+    // Same framing as with them left out.
+    expect(scene.bounds).toEqual(omit.bounds);
+    // Every route drawn touches the picture.
+    const v = visibleMeters(scene, style);
+    for (const t of scene.tracks) {
+      expect(t.bbox.maxX >= v.minX && t.bbox.minX <= v.maxX && t.bbox.maxY >= v.minY && t.bbox.minY <= v.maxY).toBe(true);
+    }
   });
 
   it('draws the map under the routes, with its credit even without the mark', () => {
     const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mark: false });
-    const scene = buildScene(prepared, filters, { ...layout, geoAnchor: { ...home, radiusM: 300 } });
+    const scene = buildScene(prepared, filters, { ...layout, geoAnchor: geo('omit') });
     const f = emptyFeatures();
     const v = visibleMeters(scene, style);
     f.majorRoads.push(new Float32Array([v.minX, 0, v.maxX, 0]));

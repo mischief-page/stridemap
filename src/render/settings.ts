@@ -1,4 +1,4 @@
-import type { ColorMode, Filters, LayoutOptions } from '../core/pipeline';
+import type { ColorMode, Filters, LayoutOptions, OtherStarts } from '../core/pipeline';
 import { ACTIVITY_TYPES, type ActivityType } from '../core/types';
 import { canvasSize, type Aspect, type Orientation } from './canvas';
 import { DEFAULT_LEGEND, type DateFormat, type LegendBackdrop, type LegendFont, type LegendPosition } from './legend';
@@ -8,7 +8,7 @@ import { DEFAULT_STYLE, type Blend, type StyleOptions } from './svg';
 import type { GeoPoint } from '../map/anchor';
 
 /** Where the map goes: the detected start, a point, or null when the point typed can't be read. */
-export type MapRequest = { at: GeoPoint | 'detected' | null };
+export type MapRequest = { at: GeoPoint | 'detected' | null; others: OtherStarts };
 
 /** Reads "41.8781, -87.6298" (commas, spaces or both between the two numbers). */
 export function parseLatLon(text: string): GeoPoint | null {
@@ -45,6 +45,8 @@ export interface EditorState {
   mapPlace: 'detected' | 'custom';
   /** "lat, lon", as map apps copy it. */
   mapAt: string;
+  /** Routes that start away from the map's point. */
+  mapOthers: OtherStarts;
   mapOpacity: number;
 
   // How it looks.
@@ -102,6 +104,7 @@ export const DEFAULT_STATE: EditorState = {
   mapShow: false,
   mapPlace: 'detected',
   mapAt: '',
+  mapOthers: 'true',
   mapOpacity: DEFAULT_MAP_STYLE.opacity,
   colorMode: 'pace',
   fit: 95,
@@ -146,7 +149,7 @@ export function toRenderRequest(
   locale?: string,
 ): { filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null } {
   return {
-    map: s.mapShow ? { at: s.mapPlace === 'custom' ? parseLatLon(s.mapAt) : 'detected' } : null,
+    map: s.mapShow ? { at: s.mapPlace === 'custom' ? parseLatLon(s.mapAt) : 'detected', others: s.mapOthers } : null,
     filters: { types: s.types, from: dayBoundary(s.from, false), to: dayBoundary(s.to, true) },
     layout: { colorMode: s.colorMode, fitPercentile: s.fit, radialExponent: s.squash },
     style: {

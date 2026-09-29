@@ -68,7 +68,13 @@ When long routes are squashed, distance from the anchor is no longer linear and 
 ### Street map (optional)
 For people whose routes mostly start from the same place (home), a translucent street map can go behind the routes. With the map on, routes are drawn in their **true position** around the map's point rather than each from its own start, so they line up with the real streets:
 - **Where:** by default the most common start. Starts are counted on a 100 m grid, the busiest 3×3 neighbourhood wins, and the point is the average of the starts within 300 m of it. Or the person enters coordinates ("41.8781, -87.6298", as map apps copy them) or searches an address.
-- **Which routes:** only those starting within 300 m of the point. The page says how many were left out. Squash is off, since it would pull routes off their streets. Fit works as usual.
+- **Routes starting at the point** (within 300 m) are drawn where they went, and the fit is based on them. Squash is off, since it would pull routes off their streets.
+- **Routes starting elsewhere**, the person's choice:
+  - *Where they really went* (default): also in true position, so they match the map too. Only those that cross the picture are kept; the rest (trips to other places) are left out of the file entirely rather than just clipped, so an image never carries places it doesn't show. The scene is built twice: once to find the area shown, then keeping routes that cross it.
+  - *From the map's point*: each from its own start, as without a map. Every route is drawn, but these won't match the streets.
+  - *Leave out*.
+
+  The page says how many start at the point, and how many from elsewhere are drawn.
 - **Map data:** vector tiles from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data; free, including commercial use, no key). The zoom is the finest (up to 14) that covers the visible area in at most 144 tiles. Tiles are decoded in the worker, converted to meters in the routes' frame, and cached, so style changes don't refetch.
 - **Drawing:** one color (white or black to suit the background), under the routes and clipped with them: parks and woods as a light tint, water a stronger tint, rivers, paths dashed, minor streets thin, major roads bolder. The whole map layer has one opacity ("map strength", default 25%). Features outside the art are left out and the rest simplified to 0.75 px. Polygons use the nonzero fill rule, since neighbouring tiles overlap a little.
 - **Credit:** "map © OpenMapTiles © OpenStreetMap contributors" in the bottom margin, next to (or instead of) the made-with mark. It is always drawn with a map.

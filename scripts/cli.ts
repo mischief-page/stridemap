@@ -21,6 +21,7 @@ import { renderSvg, visibleMeters } from '../src/render/svg';
 import { detectHome, NEAR_RADIUS_M } from '../src/map/anchor';
 import { geocode } from '../src/map/geocode';
 import { MapLoader } from '../src/map/tiles';
+import { mapScene } from '../src/map/scene';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 type Flag = { type: 'string' | 'boolean'; apply: (value: unknown, s: Partial<EditorState>) => void };
@@ -66,6 +67,7 @@ const FLAGS: Record<string, Flag> = {
   map: bool('mapShow'),
   'map-at': { type: 'string', apply: (v, s) => void Object.assign(s, { mapShow: true, mapPlace: 'custom', mapAt: v }) },
   'map-opacity': num('mapOpacity'),
+  'map-others': str('mapOthers'),
 };
 
 const { values, positionals } = parseArgs({
@@ -127,14 +129,15 @@ if (map) {
     console.error('--map-at needs "lat, lon", e.g. --map-at "41.8781, -87.6298"');
     process.exit(1);
   }
-  scene = buildScene(prepared, filters, { ...layout, geoAnchor: { lat: at.lat, lon: at.lon, radiusM: NEAR_RADIUS_M } });
-  if (!scene.workoutCount) {
+  scene = mapScene((f, l) => buildScene(prepared, f, l), filters, layout, style, at, map.others);
+  if (!scene.geoAnchor!.near) {
     console.error(`No routes start within ${NEAR_RADIUS_M} m of ${at.lat}, ${at.lon}.`);
     process.exit(1);
   }
   const features = await new MapLoader().load(at, visibleMeters(scene, style));
   svg = renderSvg(scene, style, features);
-  console.log(`Map at ${at.lat.toFixed(5)}, ${at.lon.toFixed(5)}; ${scene.geoAnchor!.excluded} routes starting elsewhere left out.`);
+  const g = scene.geoAnchor!;
+  console.log(`Map at ${at.lat.toFixed(5)}, ${at.lon.toFixed(5)}: ${g.near} routes start there; ${g.elsewhereDrawn} of ${g.elsewhere} starting elsewhere drawn.`);
 } else {
   svg = renderSvg(scene, style);
 }

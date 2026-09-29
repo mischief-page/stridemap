@@ -23,8 +23,10 @@ export function anchorTrack(track: Track): { x: Float32Array; y: Float32Array; b
 
 /** Extent of a track's points, always including the anchor at (0, 0). */
 export function extent(x: Float32Array, y: Float32Array): Bounds {
-  let minX = 0, maxX = 0, minY = 0, maxY = 0;
-  for (let i = 0; i < x.length; i++) {
+  // Starts from the first point (the anchor, for an anchored route), not the origin.
+  if (!x.length) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  let minX = x[0]!, maxX = x[0]!, minY = y[0]!, maxY = y[0]!;
+  for (let i = 1; i < x.length; i++) {
     const px = x[i]!, py = y[i]!;
     if (px < minX) minX = px; else if (px > maxX) maxX = px;
     if (py < minY) minY = py; else if (py > maxY) maxY = py;
