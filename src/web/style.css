@@ -66,6 +66,47 @@ section {
 
 section:last-child { border-bottom: 0; }
 
+/* Collapsible groups of settings; they all start closed. */
+details.group { border-bottom: 1px solid var(--line); }
+details.group[open] { padding-bottom: 12px; }
+
+details.group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+details.group > summary::-webkit-details-marker { display: none; }
+
+details.group > summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+details.group[open] > summary::before { transform: rotate(45deg); }
+details.group > summary:hover { color: var(--text); }
+
+details.group > summary .hint {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--text);
+}
+
 h2 {
   margin: 0 0 8px;
   font-size: 0.75rem;

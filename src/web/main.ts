@@ -109,6 +109,8 @@ const lookKeys = new Set<keyof EditorState>(LOOK_KEYS);
 
 function setActivePreset(p: Preset | null) {
   markPreset(p?.id ?? null);
+  // Shown beside the Style heading, so the active style is visible while collapsed.
+  $('styleHint').textContent = p ? p.name : 'Custom';
   $('presetNote').textContent = p ? p.description : 'Custom style. Pick a style to start over.';
 }
 

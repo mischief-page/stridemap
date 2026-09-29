@@ -18,6 +18,12 @@ const settled = (page: Page) =>
     return !preview.classList.contains('updating') && preview.querySelector('img');
   });
 
+/** Opens the page with every settings group expanded, so tests can reach the controls. */
+const visit = async (page: Page, url: string) => {
+  await page.goto(url);
+  await page.evaluate(() => document.querySelectorAll('details.group').forEach((d) => ((d as HTMLDetailsElement).open = true)));
+};
+
 const activePreset = (page: Page) =>
   page.evaluate(() => document.querySelector<HTMLElement>('#presetCards [aria-checked="true"]')?.dataset.id ?? null);
 
@@ -30,7 +36,7 @@ test.beforeEach(({ page }) => {
 test.afterEach(() => expect(errors).toEqual([]));
 
 test('opens on the Afterglow poster with sample data', async ({ page }) => {
-  await page.goto(`${PAGE}?sample`);
+  await visit(page, `${PAGE}?sample`);
   await settled(page);
   const svg = await previewSvg(page);
   expect(svg).toContain('viewBox="0 0 1200 1600"');
@@ -41,7 +47,7 @@ test('opens on the Afterglow poster with sample data', async ({ page }) => {
 });
 
 test('reads an Apple Health export from a file', async ({ page }) => {
-  await page.goto(PAGE);
+  await visit(page, PAGE);
   await page.setInputFiles('#file', SAMPLE_EXPORT);
   await expect(page.locator('#status')).toContainText('40 of 40', { timeout: 30_000 });
   await settled(page);
@@ -49,7 +55,7 @@ test('reads an Apple Health export from a file', async ({ page }) => {
 });
 
 test('each style preset applies its look', async ({ page }) => {
-  await page.goto(`${PAGE}?sample`);
+  await visit(page, `${PAGE}?sample`);
   await settled(page);
   for (const [id, background] of [
     ['gallery', '#fbfaf7'],
@@ -68,7 +74,7 @@ test('each style preset applies its look', async ({ page }) => {
 });
 
 test('own text keeps the preset; look changes make it custom', async ({ page }) => {
-  await page.goto(`${PAGE}?sample`);
+  await visit(page, `${PAGE}?sample`);
   await settled(page);
   await page.fill('#title', 'My Year');
   await settled(page);
@@ -83,7 +89,7 @@ test('own text keeps the preset; look changes make it custom', async ({ page }) 
 });
 
 test('filters and date ranges change what is drawn', async ({ page }) => {
-  await page.goto(`${PAGE}?sample`);
+  await visit(page, `${PAGE}?sample`);
   await settled(page);
   await page.uncheck('#types input[value="running"]');
   await settled(page);
@@ -96,14 +102,14 @@ test('filters and date ranges change what is drawn', async ({ page }) => {
 });
 
 test('downloads the SVG', async ({ page }) => {
-  await page.goto(`${PAGE}?sample`);
+  await visit(page, `${PAGE}?sample`);
   await settled(page);
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#downloadSvg')]);
   expect(download.suggestedFilename()).toBe('stridemap.svg');
 });
 
 test('the made-with mark is on by default and can be turned off', async ({ page }) => {
-  await page.goto(`${PAGE}?sample`);
+  await visit(page, `${PAGE}?sample`);
   await settled(page);
   expect(await previewSvg(page)).toContain('>made with stridemap<');
   await page.uncheck('#mark');
@@ -114,10 +120,25 @@ test('the made-with mark is on by default and can be turned off', async ({ page 
 });
 
 test('the footer links to the privacy page', async ({ page }) => {
-  await page.goto(PAGE);
+  await visit(page, PAGE);
   await page.click('footer >> text=Privacy');
   await expect(page.locator('h1')).toHaveText('Privacy');
   await expect(page.locator('.lead')).toContainText('never leave your device');
   await page.click('text=Back to stridemap');
   await expect(page.locator('#presetCards .preset-card')).toHaveCount(5);
+});
+
+test('settings groups start collapsed and open on click', async ({ page }) => {
+  await page.goto(`${PAGE}?sample`);
+  await settled(page);
+  const groups = page.locator('details.group');
+  await expect(groups).toHaveCount(7);
+  expect(await groups.evaluateAll((els) => els.filter((d) => (d as HTMLDetailsElement).open).length)).toBe(0);
+  // The drop zone and downloads stay visible; the active style shows while collapsed.
+  await expect(page.locator('#drop')).toBeVisible();
+  await expect(page.locator('#downloadSvg')).toBeVisible();
+  await expect(page.locator('#styleHint')).toHaveText('Afterglow');
+  await expect(page.locator('#colorB')).toBeHidden();
+  await page.click('summary:has-text("Colors")');
+  await expect(page.locator('#colorB')).toBeVisible();
 });
