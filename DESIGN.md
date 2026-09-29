@@ -9,7 +9,7 @@ export.zip ─► parse ─► clean ─► color values ─► anchor ─► sq
              (src/parse)       (src/core)                               (src/render)
 ```
 
-1. **Parse** (`src/parse`): stream the Apple Health `export.zip`. The large `export.xml` is read with a streaming XML parser and never loaded whole. Only walking, running and hiking workouts are kept. Each workout's GPX route is read from `workout-routes/`.
+1. **Parse** (`src/parse`): stream the Apple Health `export.zip`. The large `export.xml` is read with a streaming XML parser and never loaded whole. Only walking, running and hiking workouts are kept. Each workout's GPX route is read from `workout-routes/` with a small purpose-built scanner (route files are most of an export; this is ~3× faster than a general XML parser). Workouts are then prepared once into a compact form and the raw tracks are freed.
 2. **Clean** (`src/core/clean.ts`): drop warm-up fixes at the start of a track until horizontal accuracy is 12 m or better, drop any fix worse than 30 m, and drop jumps faster than 12 m/s.
 3. **Color values** (`src/core/values.ts`): compute a value for every point (see Color below).
 4. **Anchor** (`src/core/layout.ts`): convert each track to meters east (x) and north (y) of its first point. Every workout starts at (0, 0), north is up and east is right, and a kilometer is the same length wherever in the world it was run.

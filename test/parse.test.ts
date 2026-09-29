@@ -50,3 +50,43 @@ describe('readHealthExport', () => {
     expect(workouts[1]!.track).toBeNull();
   });
 });
+
+describe('parseGpx edge cases', () => {
+  const pt = (attrs: string, body: string) => `<trkpt ${attrs}>${body}</trkpt>`;
+  const gpx = (...points: string[]) => `<?xml version="1.0"?><gpx><trk><trkseg>\n${points.join('\n')}\n</trkseg></trk></gpx>`;
+
+  it('reads lon before lat, single quotes, and newlines between attributes', () => {
+    const track = parseGpx(gpx(`<trkpt lon='-100.5'\n  lat='40.25'><time>2026-08-01T14:00:00Z</time></trkpt>`));
+    expect(track.lat[0]).toBe(40.25);
+    expect(track.lon[0]).toBe(-100.5);
+  });
+
+  it('leaves missing speed and accuracy as NaN', () => {
+    const track = parseGpx(gpx(pt('lat="40" lon="-100"', '<time>2026-08-01T14:00:00Z</time>')));
+    expect(track.speed[0]).toBeNaN();
+    expect(track.hAcc[0]).toBeNaN();
+  });
+
+  it('drops points without a valid time or position, including self-closing ones', () => {
+    const track = parseGpx(
+      gpx(
+        pt('lat="40" lon="-100"', '<time>2026-08-01T14:00:00Z</time>'),
+        '<trkpt lat="40" lon="-100"/>',
+        pt('lat="nope" lon="-100"', '<time>2026-08-01T14:00:01Z</time>'),
+        pt('lat="40" lon="-100"', '<ele>3</ele>'),
+      ),
+    );
+    expect(track.t.length).toBe(1);
+  });
+
+  it('puts out-of-order fixes back in time order', () => {
+    const track = parseGpx(
+      gpx(
+        pt('lat="2" lon="0"', '<time>2026-08-01T14:00:02Z</time><extensions><speed>2</speed></extensions>'),
+        pt('lat="1" lon="0"', '<time>2026-08-01T14:00:01Z</time><extensions><speed>1</speed></extensions>'),
+      ),
+    );
+    expect([...track.lat]).toEqual([1, 2]);
+    expect([...track.speed]).toEqual([1, 2]);
+  });
+});
