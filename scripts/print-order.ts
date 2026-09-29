@@ -52,7 +52,7 @@ let imageUrl = values['image-url'];
 if (!imageUrl) {
   // Unguessable name, so files can't be found by listing guesses.
   const key = `proofs/${randomUUID()}-${basename(values.file!)}`;
-  execFileSync('npx', ['wrangler', 'r2', 'object', 'put', `${env('R2_BUCKET')}/${key}`, '--file', values.file!, '--content-type', 'image/png', '--remote'], { stdio: 'inherit' });
+  execFileSync('npx', ['wrangler', 'r2', 'object', 'put', `${env('R2_BUCKET')}/${key}`, '--file', values.file!, '--content-type', /\.jpe?g$/i.test(values.file!) ? 'image/jpeg' : 'image/png', '--remote'], { stdio: 'inherit' });
   imageUrl = `${env('R2_PUBLIC_URL')}/${key}`;
 }
 
