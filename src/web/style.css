@@ -247,6 +247,30 @@ button:disabled { opacity: 0.5; cursor: default; }
 /* A slow redraw dims the old image slightly so it's clear an update is coming. */
 #preview.updating img { opacity: 0.85; transition-delay: 0.3s; }
 
+.products { display: grid; gap: 6px; margin-bottom: 8px; }
+
+.product {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  text-align: left;
+  padding: 8px 10px;
+}
+
+.product strong { font-weight: 600; }
+.product .price { font-variant-numeric: tabular-nums; font-weight: 600; }
+.product small { grid-column: 1 / -1; }
+.product[aria-checked='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+button.primary {
+  margin-top: 8px;
+  width: 100%;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
 footer {
   padding: 8px 24px 32px;
   color: var(--muted);

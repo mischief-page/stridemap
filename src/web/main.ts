@@ -2,6 +2,8 @@ import { PRESETS, type Preset } from '../render/presets';
 import { LOOK_KEYS, toRenderRequest, type EditorState } from '../render/settings';
 import { readState, refresh, watchControls, writeState } from './controls';
 import { createEngine } from './engine';
+import type { Product } from '../print/catalog';
+import { productCards } from './order-ui';
 import { presetCards } from './presets-ui';
 import { downloadPng, downloadSvg, showPreview } from './preview';
 
@@ -125,9 +127,31 @@ function applyPreset(p: Preset) {
   render();
 }
 
+// ── Ordering ──────────────────────────────────────────────────────────────────
+
+// Hidden until checkout works; ?orders shows it for testing.
+$('orderSection').hidden = !new URLSearchParams(location.search).has('orders');
+let chosenProduct: Product | null = null;
+const markProduct = productCards($('products'), chooseProduct);
+
+/** Choosing a print sets the picture to the product's shape. */
+function chooseProduct(p: Product | null) {
+  chosenProduct = p;
+  markProduct(p?.id ?? null);
+  $('productNote').textContent = p
+    ? `${p.name}: $${p.priceUsd}, US shipping included. The picture is set to this print's shape.`
+    : 'Choosing a print sets the picture to its shape. Prints leave off the “made with” mark.';
+  if (p) {
+    writeState({ aspect: p.aspect });
+    render();
+  }
+}
+
 watchControls($('controls'), (key) => {
   // Changing any part of the look makes the style custom.
   if (lookKeys.has(key)) setActivePreset(null);
+  // A different print shape no longer fits the chosen print.
+  if (key === 'aspect' && chosenProduct && readState().aspect !== chosenProduct.aspect) chooseProduct(null);
   render();
 });
 

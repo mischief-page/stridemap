@@ -215,6 +215,14 @@
             <button type="button" id="downloadPng" disabled>Download PNG</button>
           </div>
         </section>
+
+        <!-- Hidden until checkout works; ?orders shows it for testing. -->
+        <section id="orderSection" hidden>
+          <h2>Order a print</h2>
+          <div class="products" id="products" role="radiogroup" aria-label="Print product"></div>
+          <small id="productNote">Choosing a print sets the picture to its shape. Prints leave off the “made with” mark.</small>
+          <button type="button" id="checkout" class="primary" disabled>Checkout opens soon</button>
+        </section>
       </aside>
 
       <figure id="preview" aria-label="Route visualization"></figure>

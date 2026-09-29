@@ -142,3 +142,20 @@ test('settings groups start collapsed and open on click', async ({ page }) => {
   await page.click('summary:has-text("Colors")');
   await expect(page.locator('#colorB')).toBeVisible();
 });
+
+test('the order panel is hidden until switched on, and sets the print shape', async ({ page }) => {
+  await visit(page, `${PAGE}?sample`);
+  await expect(page.locator('#orderSection')).toBeHidden();
+
+  await visit(page, `${PAGE}?sample&orders`);
+  await settled(page);
+  await expect(page.locator('#products .product')).toHaveCount(6);
+  await page.click('.product[data-id="metal-16x20"]');
+  await settled(page);
+  // 16×20 is 5:4; the Afterglow poster is portrait, so 1200×1500.
+  expect(await previewSvg(page)).toContain('viewBox="0 0 1200 1500"');
+  await expect(page.locator('#productNote')).toContainText('$189');
+  // A print shape that doesn't fit clears the choice.
+  await page.selectOption('#aspect', '1:1');
+  await expect(page.locator('.product[aria-checked="true"]')).toHaveCount(0);
+});
