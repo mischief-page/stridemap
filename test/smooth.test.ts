@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
 import { smoothPolyline, type Polyline } from '../src/render/smooth';
 import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
@@ -56,7 +56,7 @@ describe('smoothPolyline', () => {
 });
 
 describe('smoothing in the image', () => {
-  const scene = buildScene(syntheticWorkouts(40), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
+  const scene = buildScene(prepareWorkouts(syntheticWorkouts(40)), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
 
   it('draws curves when smoothing is on, straight lines when off', () => {
     const rigid = renderSvg(scene, DEFAULT_STYLE);

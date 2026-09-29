@@ -28,11 +28,23 @@ export interface Workout {
   track: Track | null;
 }
 
-/** A track converted to meters east (x) and north (y) of its anchor. */
+export interface Bounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+/**
+ * A track converted to meters east (x) and north (y) of its anchor. Single
+ * precision is plenty (well under a millimeter at these distances) and halves
+ * memory for histories with millions of points.
+ */
 export interface LocalTrack {
-  workoutId: string;
-  x: Float64Array;
-  y: Float64Array;
+  x: Float32Array;
+  y: Float32Array;
   /** The value that drives color (pace or frequency) for each point. */
-  value: Float64Array;
+  value: Float32Array;
+  /** Extent of x and y, including the anchor at (0, 0). */
+  bbox: Bounds;
 }

@@ -2,7 +2,7 @@ export interface Polyline {
   x: Float64Array;
   y: Float64Array;
   /** Color value per point. */
-  value: Float64Array;
+  value: ArrayLike<number>;
 }
 
 /**

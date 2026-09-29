@@ -1,4 +1,4 @@
-import { METERS_PER_DEG_LAT } from './track';
+import { METERS_PER_DEG_LAT, metersPerDegLon } from './track';
 import type { Track } from './types';
 
 export interface CleanOptions {
@@ -31,8 +31,8 @@ export function cleanTrack(track: Track, opts: CleanOptions = DEFAULT_CLEAN): Tr
   // If the track never locks to the warm-up accuracy, fall back to the normal threshold.
   if (start === n) start = 0;
 
-  // Flat-earth distance is accurate over the few meters between fixes, and much cheaper.
-  const mPerDegLon = n ? METERS_PER_DEG_LAT * Math.cos((track.lat[0]! * Math.PI) / 180) : 0;
+  // Flat-earth distance (see flatDistance), with the longitude scale computed once per track.
+  const mPerDegLon = n ? metersPerDegLon(track.lat[0]!) : 0;
   const maxSpeed2 = opts.maxSpeedMps * opts.maxSpeedMps;
   let prev = -1;
   for (let i = start; i < n; i++) {

@@ -1,5 +1,6 @@
 import rough from 'roughjs';
 import type { OpSet } from 'roughjs/bin/core';
+import { round1 } from './format';
 
 /**
  * The "drawn" look. Rough.js redraws each route as if by hand: every segment
@@ -40,24 +41,23 @@ export function pencilPath(d: string, roughness: number, seed: number): string {
  * offsets.
  */
 function compactPath(set: OpSet): string {
-  const round = (n: number) => Math.round(n * 10) / 10;
   const out: string[] = [];
   let x = NaN;
   let y = NaN;
   for (const { op, data } of set.ops) {
     if (op === 'move') {
-      const [mx, my] = [round(data[0]!), round(data[1]!)];
+      const [mx, my] = [round1(data[0]!), round1(data[1]!)];
       if (mx !== x || my !== y) out.push(`M${mx} ${my}`);
       x = mx;
       y = my;
     } else if (op === 'bcurveTo') {
       // Offsets come from rounded absolute points, so rounding never drifts.
-      const p = data.map(round);
+      const p = data.map(round1);
       out.push(`c${fmt(p[0]! - x, p[1]! - y)} ${fmt(p[2]! - x, p[3]! - y)} ${fmt(p[4]! - x, p[5]! - y)}`);
       x = p[4]!;
       y = p[5]!;
     } else {
-      const [lx, ly] = [round(data[0]!), round(data[1]!)];
+      const [lx, ly] = [round1(data[0]!), round1(data[1]!)];
       out.push(`l${fmt(lx - x, ly - y)}`);
       x = lx;
       y = ly;
@@ -67,7 +67,7 @@ function compactPath(set: OpSet): string {
 }
 
 function fmt(dx: number, dy: number): string {
-  const s = (n: number) => String(Math.round(n * 10) / 10);
+  const s = (n: number) => String(round1(n));
   const b = s(dy);
   // SVG lets a minus sign separate numbers, saving a space.
   return `${s(dx)}${b.startsWith('-') ? '' : ' '}${b}`;

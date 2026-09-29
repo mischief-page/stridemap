@@ -1,4 +1,5 @@
 import { wcagLuminance } from 'culori';
+import { round1 as r } from './format';
 
 export type Units = 'km' | 'mi';
 
@@ -128,4 +129,3 @@ function rings(
 </g>`;
 }
 
-const r = (n: number) => Math.round(n * 10) / 10;

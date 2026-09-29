@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
 import { DEFAULT_LEGEND, formatDateRange, formatStats, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from '../src/render/legend';
 import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
@@ -69,7 +69,7 @@ describe('renderLegend', () => {
 
 describe('legend in the full image', () => {
   const workouts = syntheticWorkouts(30);
-  const scene = buildScene(workouts, { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
+  const scene = buildScene(prepareWorkouts(workouts), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
 
   it('shows the dates of the workouts actually drawn', () => {
     const starts = workouts.map((w) => w.start);
@@ -118,7 +118,7 @@ describe('legendHeight', () => {
 
 describe('text band', () => {
   const workouts = syntheticWorkouts(30);
-  const scene = buildScene(workouts, { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
+  const scene = buildScene(prepareWorkouts(workouts), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
   const artBox = (svg: string) => svg.match(/<svg class="art" y="([\d.]+)" width="\d+" height="([\d.]+)"/)!.slice(1).map(Number);
 
   it('keeps the routes out of the legend band, at the bottom or the top', () => {

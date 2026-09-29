@@ -1,4 +1,4 @@
-import { METERS_PER_DEG_LAT, trackFromPoints, type TrackPoint } from '../core/track';
+import { METERS_PER_DEG_LAT, metersPerDegLon, trackFromPoints, type TrackPoint } from '../core/track';
 import type { ActivityType, Workout } from '../core/types';
 
 /**
@@ -86,7 +86,7 @@ function sample(
   lon0: number,
   rand: () => number,
 ): TrackPoint[] {
-  const mPerDegLon = METERS_PER_DEG_LAT * Math.cos((lat0 * Math.PI) / 180);
+  const mPerDegLon = metersPerDegLon(lat0);
   const phase = rand() * Math.PI * 2;
   const points: TrackPoint[] = [];
   let t = 0;

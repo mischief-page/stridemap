@@ -1,5 +1,6 @@
 import type { ActivityType } from '../core/types';
 import { inkFor, type Units } from './scale';
+import { round1 as r } from './format';
 
 export type LegendPosition =
   | 'top-left'
@@ -209,4 +210,3 @@ export function escapeXml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
 
-const r = (n: number) => Math.round(n * 10) / 10;

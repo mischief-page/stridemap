@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
 import { pencilPath } from '../src/render/pencil';
 import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
@@ -46,7 +46,7 @@ describe('pencilPath', () => {
 });
 
 describe('pencil style in the image', () => {
-  const scene = buildScene(syntheticWorkouts(30), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
+  const scene = buildScene(prepareWorkouts(syntheticWorkouts(30)), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
 
   it('adds the grain filter only when grain is on', () => {
     const grainy = renderSvg(scene, { ...DEFAULT_STYLE, pencil: { roughness: 1, grain: 0.5 } });

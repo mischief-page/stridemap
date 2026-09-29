@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { METERS_PER_DEG_LAT, trackFromPoints } from '../src/core/track';
 import type { Workout } from '../src/core/types';
 import { formatDistance, niceRound } from '../src/render/scale';
@@ -40,7 +40,7 @@ describe('scale on the image', () => {
   const filters = { types: ['running' as const], from: null, to: null };
 
   it('draws a bar whose length matches the label', () => {
-    const scene = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
+    const scene = buildScene(prepareWorkouts(workouts), filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
     const svg = renderSvg(scene, DEFAULT_STYLE);
     // 1,098 m fills 1,080 px, so a 200 m bar is 196.7 px, starting at the 60 px padding.
     const bar = svg.match(/<path d="M60 [\d.]+V[\d.]+H([\d.]+)V/);
@@ -49,15 +49,15 @@ describe('scale on the image', () => {
   });
 
   it('switches to rings when long routes are squashed', () => {
-    const scene = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 0.5 });
+    const scene = buildScene(prepareWorkouts(workouts), filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 0.5 });
     const svg = renderSvg(scene, DEFAULT_STYLE);
     expect(svg).toContain('<circle');
     expect(svg).not.toMatch(/<path d="M60 /);
   });
 
   it('uses the chosen color, or white/black to suit the background', () => {
-    const bar = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
-    const rings = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 0.5 });
+    const bar = buildScene(prepareWorkouts(workouts), filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
+    const rings = buildScene(prepareWorkouts(workouts), filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 0.5 });
     for (const scene of [bar, rings]) {
       expect(renderSvg(scene, { ...DEFAULT_STYLE, scaleColor: '#ff00aa' })).toMatch(/class="scale"[\s\S]*#ff00aa/);
       expect(renderSvg(scene, DEFAULT_STYLE)).toMatch(/class="scale"[\s\S]*stroke="#ffffff"/);
@@ -66,7 +66,7 @@ describe('scale on the image', () => {
   });
 
   it('can be turned off', () => {
-    const scene = buildScene(workouts, filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
+    const scene = buildScene(prepareWorkouts(workouts), filters, { colorMode: 'pace', fitPercentile: 100, radialExponent: 1 });
     expect(renderSvg(scene, { ...DEFAULT_STYLE, scale: 'off' })).not.toContain('class="scale"');
   });
 });

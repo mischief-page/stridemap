@@ -12,7 +12,7 @@ import { openAsBlob } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { buildScene, type ColorMode } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts, type ColorMode } from '../src/core/pipeline';
 import { ACTIVITY_TYPES, type ActivityType } from '../src/core/types';
 import { readHealthExport } from '../src/parse/health-export';
 import { canvasSize, type Aspect, type Orientation } from '../src/render/canvas';
@@ -92,7 +92,7 @@ const workouts = values.sample
 process.stderr.write('\n');
 
 const scene = buildScene(
-  workouts,
+  prepareWorkouts(workouts),
   {
     types: values.types.split(',') as ActivityType[],
     from: values.from ? Date.parse(values.from) : null,

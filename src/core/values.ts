@@ -1,4 +1,4 @@
-import { haversine, METERS_PER_DEG_LAT } from './track';
+import { flatDistance, METERS_PER_DEG_LAT, metersPerDegLon } from './track';
 import type { Track } from './types';
 
 /** Below this speed the person is standing still, and pace is meaningless. */
@@ -19,7 +19,7 @@ export function paceSeries(track: Track, windowS = 20): Float64Array {
       speed[i] = reported;
     } else if (i > 0) {
       const dt = (track.t[i]! - track.t[i - 1]!) / 1000;
-      const d = haversine(track.lat[i - 1]!, track.lon[i - 1]!, track.lat[i]!, track.lon[i]!);
+      const d = flatDistance(track.lat[i - 1]!, track.lon[i - 1]!, track.lat[i]!, track.lon[i]!);
       speed[i] = dt > 0 ? d / dt : NaN;
     } else {
       speed[i] = NaN;
@@ -75,6 +75,12 @@ function fillGaps(values: Float64Array): Float64Array {
  * street is "hot" when it was actually visited often, wherever the workouts
  * started.
  */
+/** Just the positions of a track: all the visit grid needs. */
+export interface LatLon {
+  lat: Float64Array;
+  lon: Float64Array;
+}
+
 export class HeatGrid {
   /** Workouts per cell, keyed by a single number packed from the cell's column and row. */
   private counts = new Map<number, number>();
@@ -87,19 +93,18 @@ export class HeatGrid {
     const cy = Math.floor((lat * METERS_PER_DEG_LAT) / this.cellM);
     // Use the latitude of the cell's own row so the column width is stable.
     const rowLat = ((cy + 0.5) * this.cellM) / METERS_PER_DEG_LAT;
-    const mPerDegLon = METERS_PER_DEG_LAT * Math.cos((rowLat * Math.PI) / 180);
-    const cx = Math.floor((lon * mPerDegLon) / this.cellM);
+    const cx = Math.floor((lon * metersPerDegLon(rowLat)) / this.cellM);
     return pack(cx, cy);
   }
 
-  add(track: Track): void {
+  add(track: LatLon): void {
     const seen = new Set<number>();
-    const n = track.t.length;
+    const n = track.lat.length;
     for (let i = 0; i < n; i++) {
       seen.add(this.cellOf(track.lat[i]!, track.lon[i]!));
       // Fill gaps between sparse points so a fast segment doesn't skip cells.
       if (i > 0) {
-        const d = haversine(track.lat[i - 1]!, track.lon[i - 1]!, track.lat[i]!, track.lon[i]!);
+        const d = flatDistance(track.lat[i - 1]!, track.lon[i - 1]!, track.lat[i]!, track.lon[i]!);
         const steps = Math.floor(d / (this.cellM / 2));
         for (let s = 1; s < steps; s++) {
           const f = s / steps;
@@ -140,8 +145,8 @@ export class HeatGrid {
   }
 
   /** Visit count for each point of a track, on a log scale (visit counts are very uneven). */
-  series(track: Track): Float64Array {
-    const out = new Float64Array(track.lat.length);
+  series(track: LatLon): Float32Array {
+    const out = new Float32Array(track.lat.length);
     let lastCell = NaN;
     let lastValue = 0;
     for (let i = 0; i < out.length; i++) {

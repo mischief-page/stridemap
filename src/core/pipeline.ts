@@ -1,8 +1,8 @@
 import { cleanTrack } from './clean';
-import { anchorTrack, compressRadially, fitBounds, quantiles, type Bounds } from './layout';
-import { METERS_PER_DEG_LAT } from './track';
+import { anchorTrack, compressRadially, fitBounds, quantiles } from './layout';
+import { flatDistance } from './track';
 import { HeatGrid, paceSeries } from './values';
-import type { ActivityType, LocalTrack, Track, Workout } from './types';
+import type { ActivityType, Bounds, LocalTrack, Track, Workout } from './types';
 
 export type ColorMode = 'pace' | 'frequency';
 
@@ -41,75 +41,87 @@ export interface Scene {
   activityTypes: ActivityType[];
 }
 
-export function filterWorkouts(workouts: Workout[], filters: Filters): Workout[] {
+/**
+ * An outdoor workout reduced to what drawing needs, computed once when data is
+ * loaded: the cleaned positions (for the real-world visit grid), the anchored
+ * shape with its pace values and extent, and the distance. The raw GPS track
+ * (timestamps, accuracy, reported speed) can then be dropped, which cuts memory
+ * by about two thirds for large histories.
+ */
+export interface PreparedWorkout {
+  id: string;
+  type: ActivityType;
+  start: number;
+  lat: Float64Array;
+  lon: Float64Array;
+  /** Anchored shape in meters from the start, with pace values and extent. */
+  local: LocalTrack;
+  distanceM: number;
+}
+
+/** Prepares every outdoor workout with a usable GPS track; the rest are left out. */
+export function prepareWorkouts(workouts: Workout[]): PreparedWorkout[] {
+  const out: PreparedWorkout[] = [];
+  for (const w of workouts) {
+    if (w.indoor || !w.track) continue;
+    const track = cleanTrack(w.track);
+    if (track.t.length < 2) continue;
+    // Negate pace so larger always means "hotter" (faster).
+    const pace = paceSeries(track);
+    const value = new Float32Array(pace.length);
+    for (let i = 0; i < pace.length; i++) value[i] = -pace[i]!;
+    out.push({
+      id: w.id,
+      type: w.type,
+      start: w.start,
+      lat: track.lat,
+      lon: track.lon,
+      local: { ...anchorTrack(track), value },
+      distanceM: trackDistance(track),
+    });
+  }
+  return out;
+}
+
+export function filterWorkouts(workouts: PreparedWorkout[], filters: Filters): PreparedWorkout[] {
   return workouts.filter(
     (w) =>
-      !w.indoor &&
-      w.track !== null &&
       filters.types.includes(w.type) &&
       (filters.from === null || w.start >= filters.from) &&
       (filters.to === null || w.start <= filters.to),
   );
 }
 
-/** Per-workout work that no setting changes: cleaned GPS, anchored shape and pace. Computed once. */
-interface Prepared {
-  track: Track;
-  x: Float64Array;
-  y: Float64Array;
-  /** Negated pace, so larger always means "hotter" (faster). */
-  speedValue: Float64Array;
-  /** Length of the cleaned GPS track, in meters. */
-  distanceM: number;
-}
-const prepared = new WeakMap<Workout, Prepared | null>();
-
-function prepare(w: Workout): Prepared | null {
-  let p = prepared.get(w);
-  if (p === undefined) {
-    const track = cleanTrack(w.track as Track);
-    p =
-      track.t.length >= 2
-        ? { track, ...anchorTrack(track), speedValue: paceSeries(track).map((v) => -v), distanceM: trackDistance(track) }
-        : null;
-    prepared.set(w, p);
-  }
-  return p;
-}
-
 /**
- * Visit counts depend only on which workouts are selected, so the last grid
- * (and each workout's values from it) is reused until the selection changes.
+ * Visit counts depend only on which workouts are selected, so the last grid's
+ * values are reused until the selection changes.
  */
-let heatCache: { key: string; values: WeakMap<Workout, Float64Array> } | null = null;
+let heatCache: { key: string; values: Map<string, Float32Array> } | null = null;
 
-function frequencyValues(selected: { w: Workout; p: Prepared }[]): Map<Workout, Float64Array> {
-  const key = selected.map((s) => s.w.id).join('|');
+function frequencyValues(selected: PreparedWorkout[]): Map<string, Float32Array> {
+  const key = selected.map((w) => w.id).join('|');
   if (heatCache?.key !== key) {
     const heat = new HeatGrid();
-    for (const s of selected) heat.add(s.p.track);
-    const values = new WeakMap<Workout, Float64Array>();
-    for (const s of selected) values.set(s.w, heat.series(s.p.track));
-    heatCache = { key, values };
+    for (const w of selected) heat.add(w);
+    heatCache = { key, values: new Map(selected.map((w) => [w.id, heat.series(w)])) };
   }
-  const cache = heatCache.values;
-  return new Map(selected.map((s) => [s.w, cache.get(s.w)!]));
+  return heatCache.values;
 }
 
-export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOptions): Scene {
-  const selected = filterWorkouts(workouts, filters)
-    .map((w) => ({ w, p: prepare(w) }))
-    .filter((s): s is { w: Workout; p: Prepared } => s.p !== null);
-
+export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: LayoutOptions): Scene {
+  const selected = filterWorkouts(workouts, filters);
   const heat = opts.colorMode === 'frequency' ? frequencyValues(selected) : null;
-  let tracks: LocalTrack[] = selected.map(({ w, p }) => ({
-    workoutId: w.id,
-    x: p.x,
-    y: p.y,
-    value: heat ? heat.get(w)! : p.speedValue,
-  }));
+  const tracks = compressRadially(
+    selected.map((w) => (heat ? { ...w.local, value: heat.get(w.id)! } : w.local)),
+    opts.radialExponent,
+  );
 
-  tracks = compressRadially(tracks, opts.radialExponent);
+  let first = Infinity;
+  let last = -Infinity;
+  for (const w of selected) {
+    first = Math.min(first, w.start);
+    last = Math.max(last, w.start);
+  }
 
   return {
     tracks,
@@ -117,11 +129,9 @@ export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOp
     domain: colorDomain(tracks, opts.colorMode),
     radialExponent: opts.radialExponent,
     workoutCount: tracks.length,
-    totalDistanceM: selected.reduce((sum, s) => sum + s.p.distanceM, 0),
-    activityTypes: [...new Set(selected.map((s) => s.w.type))],
-    dateRange: selected.length
-      ? [Math.min(...selected.map((s) => s.w.start)), Math.max(...selected.map((s) => s.w.start))]
-      : null,
+    totalDistanceM: selected.reduce((sum, w) => sum + w.distanceM, 0),
+    activityTypes: [...new Set(selected.map((w) => w.type))],
+    dateRange: selected.length ? [first, last] : null,
   };
 }
 
@@ -145,15 +155,10 @@ function colorDomain(tracks: LocalTrack[], mode: ColorMode): [number, number] {
   return [lo, hi > lo ? hi : lo + 1];
 }
 
-/** Flat-earth length of a track; accurate over the few meters between GPS fixes. */
 function trackDistance(track: Track): number {
-  const mPerDegLon = METERS_PER_DEG_LAT * Math.cos((track.lat[0]! * Math.PI) / 180);
   let total = 0;
   for (let i = 1; i < track.t.length; i++) {
-    total += Math.hypot(
-      (track.lon[i]! - track.lon[i - 1]!) * mPerDegLon,
-      (track.lat[i]! - track.lat[i - 1]!) * METERS_PER_DEG_LAT,
-    );
+    total += flatDistance(track.lat[i - 1]!, track.lon[i - 1]!, track.lat[i]!, track.lon[i]!);
   }
   return total;
 }

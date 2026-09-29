@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
 import { canvasSize } from '../src/render/canvas';
 import { DEFAULT_LEGEND } from '../src/render/legend';
@@ -19,7 +19,7 @@ describe('presets', () => {
 
   it('renders each one as a portrait poster with its legend in a band', () => {
     for (const p of PRESETS) {
-      const scene = buildScene(workouts, { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: p.colorMode, fitPercentile: 95, radialExponent: p.squash });
+      const scene = buildScene(prepareWorkouts(workouts), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: p.colorMode, fitPercentile: 95, radialExponent: p.squash });
       const svg = renderSvg(scene, {
         ...DEFAULT_STYLE,
         ...p.style,

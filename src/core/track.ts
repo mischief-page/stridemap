@@ -28,15 +28,18 @@ export function trackFromPoints(points: TrackPoint[]): Track {
 }
 
 const EARTH_RADIUS_M = 6_371_008.8;
-const DEG = Math.PI / 180;
 
-/** Great-circle distance in meters. */
-export function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLat = (lat2 - lat1) * DEG;
-  const dLon = (lon2 - lon1) * DEG;
-  const a =
-    Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * DEG) * Math.cos(lat2 * DEG) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a)));
+export const METERS_PER_DEG_LAT = (EARTH_RADIUS_M * Math.PI) / 180;
+
+/** Meters per degree of longitude at a latitude. */
+export function metersPerDegLon(lat: number): number {
+  return METERS_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
 }
 
-export const METERS_PER_DEG_LAT = EARTH_RADIUS_M * DEG;
+/**
+ * Distance in meters on a locally flat Earth. Accurate over the few meters
+ * between GPS fixes and much cheaper than a great-circle formula.
+ */
+export function flatDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  return Math.hypot((lon2 - lon1) * metersPerDegLon(lat1), (lat2 - lat1) * METERS_PER_DEG_LAT);
+}

@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { buildScene, type Filters, type LayoutOptions, type Scene } from '../core/pipeline';
+import { buildScene, prepareWorkouts, type Filters, type LayoutOptions, type PreparedWorkout, type Scene } from '../core/pipeline';
 import type { Workout } from '../core/types';
 import { readHealthExport, type Progress } from '../parse/health-export';
 import { renderSvg, type StyleOptions } from '../render/svg';
@@ -23,21 +23,27 @@ export type EngineMessage =
   | { kind: 'rendered'; seq: number; svg: string; shown: number; withGps: number }
   | { kind: 'error'; message: string };
 
-let workouts: Workout[] = [];
+// Only the prepared form is kept; the raw GPS tracks are freed after loading.
+let workouts: PreparedWorkout[] = [];
 // Style-only changes (colors, legend, scale…) reuse the last scene.
 let sceneCache: { key: string; scene: Scene } | null = null;
 
 const post = (msg: EngineMessage) => self.postMessage(msg);
 
 function loaded(list: Workout[]) {
-  workouts = list;
+  workouts = prepareWorkouts(list);
   sceneCache = null;
-  const starts = list.filter((w) => w.track && !w.indoor).map((w) => w.start);
+  let first = Infinity;
+  let last = -Infinity;
+  for (const w of workouts) {
+    first = Math.min(first, w.start);
+    last = Math.max(last, w.start);
+  }
   post({
     kind: 'loaded',
-    withGps: starts.length,
-    firstStart: starts.length ? Math.min(...starts) : null,
-    lastStart: starts.length ? Math.max(...starts) : null,
+    withGps: workouts.length,
+    firstStart: workouts.length ? first : null,
+    lastStart: workouts.length ? last : null,
   });
 }
 
@@ -52,8 +58,7 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
       const key = JSON.stringify([req.filters, req.layout]);
       if (sceneCache?.key !== key) sceneCache = { key, scene: buildScene(workouts, req.filters, req.layout) };
       const { scene } = sceneCache;
-      const withGps = workouts.filter((w) => w.track && !w.indoor).length;
-      post({ kind: 'rendered', seq: req.seq, svg: renderSvg(scene, req.style), shown: scene.workoutCount, withGps });
+      post({ kind: 'rendered', seq: req.seq, svg: renderSvg(scene, req.style), shown: scene.workoutCount, withGps: workouts.length });
     }
   } catch (err) {
     post({ kind: 'error', message: err instanceof Error ? err.message : String(err) });

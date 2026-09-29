@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cleanTrack } from '../src/core/clean';
 import { anchorTrack, compressRadially, fitBounds } from '../src/core/layout';
-import { buildScene, type Filters, type LayoutOptions } from '../src/core/pipeline';
+import { buildScene, prepareWorkouts, type Filters, type LayoutOptions } from '../src/core/pipeline';
 import { METERS_PER_DEG_LAT, trackFromPoints, type TrackPoint } from '../src/core/track';
 import { ACTIVITY_TYPES, type LocalTrack, type Workout } from '../src/core/types';
 import { HeatGrid, paceSeries } from '../src/core/values';
@@ -82,10 +82,10 @@ describe('HeatGrid', () => {
 
 describe('fitBounds', () => {
   const track = (maxX: number): LocalTrack => ({
-    workoutId: String(maxX),
-    x: Float64Array.of(0, maxX),
-    y: Float64Array.of(0, 10),
-    value: Float64Array.of(0, 0),
+    x: Float32Array.of(0, maxX),
+    y: Float32Array.of(0, 10),
+    value: Float32Array.of(0, 0),
+    bbox: { minX: 0, maxX, minY: 0, maxY: 10 },
   });
   const tracks = [...Array.from({ length: 99 }, () => track(100)), track(10_000)];
 
@@ -99,10 +99,29 @@ describe('fitBounds', () => {
 });
 
 describe('compressRadially', () => {
-  it('keeps direction and shrinks distance', () => {
-    const [t] = compressRadially([{ workoutId: 'a', x: Float64Array.of(300), y: Float64Array.of(400), value: Float64Array.of(0) }], 0.5);
-    expect(Math.hypot(t!.x[0]!, t!.y[0]!)).toBeCloseTo(Math.sqrt(500));
+  it('keeps direction, shrinks distance and updates the extent', () => {
+    const [t] = compressRadially(
+      [{ x: Float32Array.of(300), y: Float32Array.of(400), value: Float32Array.of(0), bbox: { minX: 0, maxX: 300, minY: 0, maxY: 400 } }],
+      0.5,
+    );
+    expect(Math.hypot(t!.x[0]!, t!.y[0]!)).toBeCloseTo(Math.sqrt(500), 4);
     expect(t!.y[0]! / t!.x[0]!).toBeCloseTo(4 / 3);
+    expect(t!.bbox.maxY).toBeCloseTo(t!.y[0]!);
+  });
+});
+
+describe('prepareWorkouts', () => {
+  it('keeps outdoor workouts with GPS, with their shape, extent and distance', () => {
+    const track = trackFromPoints(line(40, -100, 90, 100));
+    const base = { type: 'running' as const, start: 0, end: 0, distanceM: null };
+    const prepared = prepareWorkouts([
+      { ...base, id: 'out', indoor: false, track },
+      { ...base, id: 'in', indoor: true, track },
+      { ...base, id: 'none', indoor: false, track: null },
+    ]);
+    expect(prepared.map((w) => w.id)).toEqual(['out']);
+    expect(prepared[0]!.distanceM).toBeCloseTo(300, -1);
+    expect(prepared[0]!.local.bbox.maxX).toBeCloseTo(300, 0);
   });
 });
 
@@ -113,7 +132,7 @@ describe('buildScene + renderSvg', () => {
 
   it('renders every selected workout in both color modes', () => {
     for (const colorMode of ['pace', 'frequency'] as const) {
-      const scene = buildScene(workouts, filters, { ...layout, colorMode });
+      const scene = buildScene(prepareWorkouts(workouts), filters, { ...layout, colorMode });
       expect(scene.workoutCount).toBe(40);
       const svg = renderSvg(scene, DEFAULT_STYLE);
       expect(svg).toMatch(/^<svg/);
@@ -122,15 +141,15 @@ describe('buildScene + renderSvg', () => {
   });
 
   it('applies type and date filters', () => {
-    const runs = buildScene(workouts, { ...filters, types: ['running'] }, layout);
+    const runs = buildScene(prepareWorkouts(workouts), { ...filters, types: ['running'] }, layout);
     expect(runs.workoutCount).toBe(workouts.filter((w) => w.type === 'running').length);
-    const none = buildScene(workouts, { ...filters, from: Date.UTC(2030, 0, 1) }, layout);
+    const none = buildScene(prepareWorkouts(workouts), { ...filters, from: Date.UTC(2030, 0, 1) }, layout);
     expect(none.workoutCount).toBe(0);
     expect(renderSvg(none, DEFAULT_STYLE)).toMatch(/^<svg/);
   });
 
   it('keeps real coordinates out of the output', () => {
-    const svg = renderSvg(buildScene(workouts, filters, layout), DEFAULT_STYLE);
+    const svg = renderSvg(buildScene(prepareWorkouts(workouts), filters, layout), DEFAULT_STYLE);
     expect(svg).not.toMatch(/-100\.0|40\.0\d{3}/);
   });
 });

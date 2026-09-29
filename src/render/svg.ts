@@ -1,6 +1,7 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
 import { canvasSize } from './canvas';
+import { round1 as r } from './format';
 import { DEFAULT_LEGEND, escapeXml, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from './legend';
 import { renderScale, scaleUsesRings, type ScaleStyle, type Units } from './scale';
 import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
@@ -130,7 +131,7 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
 <svg width="${W}" height="${H}">
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
-<svg class="art" y="${r1(artTop)}" width="${W}" height="${r1(artH)}" viewBox="0 ${r1(artTop)} ${W} ${r1(artH)}">
+<svg class="art" y="${r(artTop)}" width="${W}" height="${r(artH)}" viewBox="0 ${r(artTop)} ${W} ${r(artH)}">
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
 ${body}
 </g>
@@ -142,8 +143,6 @@ ${renderLegend(frame, style.legend, facts)}
 </svg>`;
 }
 
-const r1 = (n: number) => Math.round(n * 10) / 10;
-
 /**
  * The route shapes last drawn, one path per color step. They depend only on
  * the scene, canvas and line-shape settings, so color, opacity, blend and
@@ -153,7 +152,9 @@ const r1 = (n: number) => Math.round(n * 10) / 10;
 let shapesCache: { scene: Scene; key: string; paths: string[] } | null = null;
 
 function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string[] {
-  const key = JSON.stringify([style.width, style.height, style.padding, style.smoothing, style.pencil?.roughness]);
+  // Where the routes sit (scale and anchor) is part of the key: the text band
+  // moves them whenever the legend's height changes.
+  const key = JSON.stringify([scale, ox, oy, style.smoothing, style.pencil?.roughness]);
   if (shapesCache?.scene === scene && shapesCache.key === key) return shapesCache.paths;
 
   const { domain } = scene;
@@ -163,18 +164,17 @@ function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: numbe
   };
 
   const segments: string[][] = Array.from({ length: BINS }, () => []);
-  const r = (n: number) => Math.round(n * 10) / 10;
 
   const curved = style.smoothing > 0;
   for (const t of scene.tracks) {
-    const { x: sx, y: sy, value } = smoothPolyline(
-      {
-        x: Float64Array.from(t.x, (x) => ox + x * scale),
-        y: Float64Array.from(t.y, (y) => oy - y * scale),
-        value: t.value,
-      },
-      style.smoothing,
-    );
+    const n = t.x.length;
+    const px = new Float64Array(n);
+    const py = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      px[i] = ox + t.x[i]! * scale;
+      py[i] = oy - t.y[i]! * scale; // screen y points down
+    }
+    const { x: sx, y: sy, value } = smoothPolyline({ x: px, y: py, value: t.value }, style.smoothing);
     const keep = simplify(sx, sy, curved ? SIMPLIFY_CURVED_PX : SIMPLIFY_PX);
     let currentBin = -1;
     for (let k = 1; k < keep.length; k++) {
