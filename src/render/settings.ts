@@ -3,7 +3,21 @@ import { ACTIVITY_TYPES, type ActivityType } from '../core/types';
 import { canvasSize, type Aspect, type Orientation } from './canvas';
 import { DEFAULT_LEGEND, type DateFormat, type LegendBackdrop, type LegendFont, type LegendPosition } from './legend';
 import type { ScaleStyle, Units } from './scale';
+import { DEFAULT_MAP_STYLE } from './map';
 import { DEFAULT_STYLE, type Blend, type StyleOptions } from './svg';
+import type { GeoPoint } from '../map/anchor';
+
+/** Where the map goes: the detected start, a point, or null when the point typed can't be read. */
+export type MapRequest = { at: GeoPoint | 'detected' | null };
+
+/** Reads "41.8781, -87.6298" (commas, spaces or both between the two numbers). */
+export function parseLatLon(text: string): GeoPoint | null {
+  const m = text.trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lon = Number(m[2]);
+  return Math.abs(lat) <= 85 && Math.abs(lon) <= 180 ? { lat, lon } : null;
+}
 
 /**
  * Every setting a person can change, as one flat record. The page's controls,
@@ -22,6 +36,16 @@ export interface EditorState {
   units: Units;
   /** The "made with" mark on images; the person's choice, so presets leave it alone. */
   mark: boolean;
+  /**
+   * A street map behind the routes. It's about the person's own place, so it
+   * isn't part of a look and presets leave it alone.
+   */
+  mapShow: boolean;
+  /** 'detected': the most common start; 'custom': the point in mapAt. */
+  mapPlace: 'detected' | 'custom';
+  /** "lat, lon", as map apps copy it. */
+  mapAt: string;
+  mapOpacity: number;
 
   // How it looks.
   colorMode: ColorMode;
@@ -75,6 +99,10 @@ export const DEFAULT_STATE: EditorState = {
   name: '',
   units: DEFAULT_STYLE.units,
   mark: DEFAULT_STYLE.mark,
+  mapShow: false,
+  mapPlace: 'detected',
+  mapAt: '',
+  mapOpacity: DEFAULT_MAP_STYLE.opacity,
   colorMode: 'pace',
   fit: 95,
   squash: 1,
@@ -116,8 +144,9 @@ function dayBoundary(date: string, endOfDay: boolean): number | null {
 export function toRenderRequest(
   s: EditorState,
   locale?: string,
-): { filters: Filters; layout: LayoutOptions; style: StyleOptions } {
+): { filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null } {
   return {
+    map: s.mapShow ? { at: s.mapPlace === 'custom' ? parseLatLon(s.mapAt) : 'detected' } : null,
     filters: { types: s.types, from: dayBoundary(s.from, false), to: dayBoundary(s.to, true) },
     layout: { colorMode: s.colorMode, fitPercentile: s.fit, radialExponent: s.squash },
     style: {
@@ -136,6 +165,7 @@ export function toRenderRequest(
       scaleColor: s.scaleColor,
       textBand: s.textBand,
       mark: s.mark,
+      map: s.mapShow ? { ...DEFAULT_MAP_STYLE, opacity: s.mapOpacity } : null,
       legend: {
         show: s.legendShow,
         title: s.title,

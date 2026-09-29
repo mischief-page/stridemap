@@ -22,6 +22,10 @@ const CONTROLS: { [K in keyof EditorState]: Kind } = {
   name: 'value',
   units: 'value',
   mark: 'checkbox',
+  mapShow: 'checkbox',
+  mapPlace: 'radio',
+  mapAt: 'value',
+  mapOpacity: 'number',
   colorMode: 'radio',
   fit: 'number',
   squash: 'number',
@@ -64,6 +68,7 @@ const LABELS: Partial<{ [K in keyof EditorState]: (v: EditorState[K]) => string 
   roughness: (v) => String(v),
   grain: (v) => `${Math.round(v * 100)}%`,
   legendSize: (v) => `${Math.round(v * 100)}%`,
+  mapOpacity: (v) => `${Math.round(v * 100)}%`,
 };
 
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -135,6 +140,10 @@ export function refresh(): void {
   }
   byId('pencilFields').hidden = s.lineStyle !== 'pencil';
   byId<HTMLFieldSetElement>('legendFields').disabled = !s.legendShow;
+  byId<HTMLFieldSetElement>('mapFields').disabled = !s.mapShow;
+  byId('mapCustom').hidden = s.mapPlace !== 'custom';
+  // Squashing would pull routes off the streets they ran on.
+  field('squash').disabled = s.mapShow;
   for (const key of KEYS) {
     if (CONTROLS[key] !== 'autoColor') continue;
     if (!chosen[key]) field(key).value = inkFor(s.background);

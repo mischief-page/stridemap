@@ -22,7 +22,7 @@ export function anchorTrack(track: Track): { x: Float32Array; y: Float32Array; b
 }
 
 /** Extent of a track's points, always including the anchor at (0, 0). */
-function extent(x: Float32Array, y: Float32Array): Bounds {
+export function extent(x: Float32Array, y: Float32Array): Bounds {
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
   for (let i = 0; i < x.length; i++) {
     const px = x[i]!, py = y[i]!;

@@ -33,7 +33,7 @@
       <p class="muted">Last updated September 29, 2026</p>
 
       <div class="box">
-        <p class="lead"><strong>Your health and location data never leave your device.</strong> stridemap reads your export and draws your picture entirely inside your web browser. Nothing you load is uploaded, stored, or seen by anyone else, including us.</p>
+        <p class="lead"><strong>Your health and location data never leave your device.</strong> stridemap reads your export and draws your picture entirely inside your web browser. Nothing you load is uploaded, stored, or seen by anyone else, including us. (The optional street map loads map tiles for your area; see below.)</p>
       </div>
 
       <h2>Your workouts</h2>
@@ -46,8 +46,16 @@
       <h2>The images you download</h2>
       <ul>
         <li>Every route is drawn from a shared starting point, so the image contains no real map coordinates and can't be used to find where you live.</li>
+        <li><strong>Except with the optional street map.</strong> A map shows the real place your routes start from, so an image with a map in it can reveal where that is, such as your home. Leave the map off, or choose a different point, if you'd rather not share that.</li>
         <li>A very distinctive route could still be recognizable to someone who knows the area, so think about that before sharing.</li>
         <li>Anything you type into the legend, like a title or your name, becomes part of the image.</li>
+      </ul>
+
+      <h2>The optional street map</h2>
+      <ul>
+        <li>The map is off unless you turn it on. To draw it, your browser downloads map tiles for the area shown from <a href="https://openfreemap.org">OpenFreeMap</a>. Like any website, OpenFreeMap sees those requests (your IP address and which tiles, which reveals the area to within a few kilometers). Your routes and workouts are not sent.</li>
+        <li>If you place the map by address and press Find, the address you typed is sent to OpenStreetMap's <a href="https://nominatim.org">Nominatim</a> search, under the <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation's privacy policy</a>. Nothing is sent while you type, and coordinates you enter yourself aren't sent to anyone for lookup.</li>
+        <li>Finding "where most routes start" is worked out on your device.</li>
       </ul>
 
       <h2>What we collect</h2>

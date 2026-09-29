@@ -4,7 +4,7 @@ Turn your Apple Health walks and runs into a shareable piece of art.
 
 Every route starts from the same point and heads off in the direction you actually went, so years of workouts form a color-graded spider web. Color shows either your **pace** along each route, or **how often** you've been down each street.
 
-Your data never leaves your device. The export is read in your browser (or on your machine with the CLI), and the output has no real coordinates in it.
+Your data never leaves your device. The export is read in your browser (or on your machine with the CLI), and the output has no real coordinates in it, unless you turn on the optional street map, which shows the real place your routes start from.
 
 ## Use it
 
@@ -53,6 +53,12 @@ CLI options: `--aspect 3:2|4:3|5:4|7:5|iso|16:9|1:1` (default 3:2 landscape; add
 
 Legend options (the legend appears when any of the first three are given): `--title "…"`, `--name "…"`, `--dates`, `--date-format month|day|year`, `--legend-position top-left|top-center|top-right|bottom-left|bottom-center|bottom-right`, `--legend-font sans|serif|mono|rounded`, `--legend-size 0.5..2`, `--legend-caps`, `--legend-color`, `--legend-backdrop halo|panel|none`, `--no-mark` (leave off the small "made with stridemap" mark), `--stats` (a totals line such as "412 runs · 2,318 mi"), `--text-band` (keep the legend in its own band so routes never run under it).
 
+Street map behind the routes (optional; for when most routes start from the same place): `--map` centres it where most routes start, `--map-at "41.8781, -87.6298"` on a point, or `--map-address "…"` on an address (looked up with OpenStreetMap's Nominatim, the only step that sends anything off your machine). `--map-opacity 0.05..0.8`. Map tiles come from [OpenFreeMap](https://openfreemap.org).
+
+```sh
+npm run cli -- ~/Downloads/export.zip --preset gallery --map --out out/map.svg
+```
+
 ## Deploy
 
 The site is hosted on Cloudflare (static assets on Workers), currently at https://stridemap.matt-melchiori.workers.dev.
@@ -85,6 +91,7 @@ See [DESIGN.md](DESIGN.md) for the rules and the pipeline.
 ```
 src/
   parse/    export.zip → workouts with GPS tracks (streaming, works in a Web Worker)
+  map/      optional street map: most common start, map tiles, address search
   core/     cleaning, pace, real-world frequency heat, anchoring and fitting
   render/   scene → SVG; settings.ts (every setting, shared by page and CLI); presets.ts
   sample/   synthetic workouts for demos and tests

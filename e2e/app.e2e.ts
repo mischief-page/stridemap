@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { resolve } from 'node:path';
 import { SAMPLE_EXPORT } from './global-setup';
+import { makeTile } from '../test/mvt';
 
 const PAGE = `file://${resolve('dist-single/stridemap.html')}`;
 
@@ -132,7 +133,7 @@ test('settings groups start collapsed and open on click', async ({ page }) => {
   await page.goto(`${PAGE}?sample`);
   await settled(page);
   const groups = page.locator('details.group');
-  await expect(groups).toHaveCount(7);
+  await expect(groups).toHaveCount(8);
   expect(await groups.evaluateAll((els) => els.filter((d) => (d as HTMLDetailsElement).open).length)).toBe(0);
   // The drop zone and downloads stay visible; the active style shows while collapsed.
   await expect(page.locator('#drop')).toBeVisible();
@@ -158,4 +159,36 @@ test('the order panel is hidden until switched on, and sets the print shape', as
   // A print shape that doesn't fit clears the choice.
   await page.selectOption('#aspect', '1:1');
   await expect(page.locator('.product[aria-checked="true"]')).toHaveCount(0);
+});
+
+test('draws a street map behind the routes when asked, from mocked tiles', async ({ page, context }) => {
+  const tiles: string[] = [];
+  await context.route('https://tiles.openfreemap.org/planet', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tiles: ['https://tiles.openfreemap.org/t/{z}/{x}/{y}.pbf'] }), headers: { 'access-control-allow-origin': '*' } }),
+  );
+  await context.route('https://tiles.openfreemap.org/t/**', (route) => {
+    tiles.push(route.request().url());
+    return route.fulfill({ body: Buffer.from(makeTile({ transportation: [{ type: 2, props: { class: 'primary' }, points: [[0, 2048], [4096, 2048]] }] })), headers: { 'access-control-allow-origin': '*' } });
+  });
+  await visit(page, `${PAGE}?sample`);
+  await settled(page);
+  expect(await previewSvg(page)).not.toContain('class="map"');
+
+  await page.check('#mapShow');
+  await expect(page.locator('#mapStatus')).toContainText('where most routes start');
+  await settled(page);
+  const svg = await previewSvg(page);
+  expect(svg).toContain('class="map"');
+  expect(svg).toContain('OpenStreetMap contributors');
+  expect(tiles.length).toBeGreaterThan(0);
+  await expect(page.locator('#status')).toContainText('229 of 300');
+  await expect(page.locator('#mapStatus')).toContainText('71 starting elsewhere are left out');
+  await expect(page.locator('#squash')).toBeDisabled();
+
+  // A point typed by hand; far from every route, so the map is off and routes are drawn as usual.
+  await page.check('#mapPlace input[value="custom"]');
+  await page.fill('#mapAt', '10, 10');
+  await expect(page.locator('#mapStatus')).toContainText('No routes shown start within 300 m');
+  await settled(page);
+  expect(await previewSvg(page)).not.toContain('class="map"');
 });

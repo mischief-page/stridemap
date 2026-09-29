@@ -1,16 +1,17 @@
 import type { Filters, LayoutOptions } from '../core/pipeline';
+import type { MapRequest } from '../render/settings';
 import type { StyleOptions } from '../render/svg';
-import type { EngineMessage, EngineRequest } from './worker';
+import type { EngineMessage, EngineRequest, MapResult } from './worker';
 // Inlined so the page also works as a single file opened straight from disk.
 import EngineWorker from './worker?worker&inline';
 
-type RenderRequest = { filters: Filters; layout: LayoutOptions; style: StyleOptions };
+type RenderRequest = { filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null };
 
 export interface EngineHandlers {
   onProgress(text: string): void;
   onLoaded(info: { withGps: number; firstStart: number | null; lastStart: number | null }): void;
   /** `more` is true when a newer request is already on its way. */
-  onRendered(result: { svg: string; shown: number; withGps: number }, more: boolean): void;
+  onRendered(result: { svg: string; shown: number; withGps: number; map: MapResult | null }, more: boolean): void;
   onError(message: string, during: 'load' | 'render'): void;
 }
 

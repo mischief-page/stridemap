@@ -1,6 +1,6 @@
 import { cleanTrack } from './clean';
-import { anchorTrack, compressRadially, fitBounds, quantiles } from './layout';
-import { flatDistance } from './track';
+import { anchorTrack, compressRadially, extent, fitBounds, quantiles } from './layout';
+import { flatDistance, METERS_PER_DEG_LAT, metersPerDegLon } from './track';
 import { HeatGrid, paceSeries } from './values';
 import type { ActivityType, Bounds, LocalTrack, Track, Workout } from './types';
 
@@ -19,6 +19,12 @@ export interface LayoutOptions {
   fitPercentile: number;
   /** 1 is true scale; lower values pull long routes inward. */
   radialExponent: number;
+  /**
+   * Draw routes in their true position around this real-world point, for
+   * laying them over a map. Only routes starting within radiusM are drawn,
+   * and squashing is off (it would pull routes off the streets).
+   */
+  geoAnchor?: { lat: number; lon: number; radiusM: number } | null;
 }
 
 export interface Scene {
@@ -39,6 +45,8 @@ export interface Scene {
   totalDistanceM: number;
   /** Which activity types are drawn, for wording like "412 runs". */
   activityTypes: ActivityType[];
+  /** With a geoAnchor: the point, and how many selected routes started too far from it to draw. */
+  geoAnchor: { lat: number; lon: number; excluded: number } | null;
 }
 
 /**
@@ -109,11 +117,19 @@ function frequencyValues(selected: PreparedWorkout[]): Map<string, Float32Array>
 }
 
 export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: LayoutOptions): Scene {
-  const selected = filterWorkouts(workouts, filters);
+  const matching = filterWorkouts(workouts, filters);
+  const geo = opts.geoAnchor ?? null;
+  const selected = geo
+    ? matching.filter((w) => flatDistance(geo.lat, geo.lon, w.lat[0]!, w.lon[0]!) <= geo.radiusM)
+    : matching;
+  const radialExponent = geo ? 1 : opts.radialExponent;
   const heat = opts.colorMode === 'frequency' ? frequencyValues(selected) : null;
   const tracks = compressRadially(
-    selected.map((w) => (heat ? { ...w.local, value: heat.get(w.id)! } : w.local)),
-    opts.radialExponent,
+    selected.map((w) => {
+      const local = geo ? placeAround(w, geo) : w.local;
+      return heat ? { ...local, value: heat.get(w.id)! } : local;
+    }),
+    radialExponent,
   );
 
   let first = Infinity;
@@ -127,12 +143,26 @@ export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: 
     tracks,
     bounds: fitBounds(tracks, opts.fitPercentile),
     domain: colorDomain(tracks, opts.colorMode),
-    radialExponent: opts.radialExponent,
+    radialExponent,
     workoutCount: tracks.length,
     totalDistanceM: selected.reduce((sum, w) => sum + w.distanceM, 0),
     activityTypes: [...new Set(selected.map((w) => w.type))],
     dateRange: selected.length ? [first, last] : null,
+    geoAnchor: geo ? { lat: geo.lat, lon: geo.lon, excluded: matching.length - selected.length } : null,
   };
+}
+
+/** A route in meters east and north of a real-world point, rather than of its own start. */
+function placeAround(w: PreparedWorkout, at: { lat: number; lon: number }): LocalTrack {
+  const n = w.lat.length;
+  const x = new Float32Array(n);
+  const y = new Float32Array(n);
+  const mLon = metersPerDegLon(at.lat);
+  for (let i = 0; i < n; i++) {
+    x[i] = (w.lon[i]! - at.lon) * mLon;
+    y[i] = (w.lat[i]! - at.lat) * METERS_PER_DEG_LAT;
+  }
+  return { x, y, value: w.local.value, bbox: extent(x, y) };
 }
 
 function colorDomain(tracks: LocalTrack[], mode: ColorMode): [number, number] {

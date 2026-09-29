@@ -17,7 +17,10 @@ import type { ActivityType } from '../src/core/types';
 import { readHealthExport } from '../src/parse/health-export';
 import { findPreset, PRESETS } from '../src/render/presets';
 import { DEFAULT_STATE, toRenderRequest, type EditorState } from '../src/render/settings';
-import { renderSvg } from '../src/render/svg';
+import { renderSvg, visibleMeters } from '../src/render/svg';
+import { detectHome, NEAR_RADIUS_M } from '../src/map/anchor';
+import { geocode } from '../src/map/geocode';
+import { MapLoader } from '../src/map/tiles';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 type Flag = { type: 'string' | 'boolean'; apply: (value: unknown, s: Partial<EditorState>) => void };
@@ -60,6 +63,9 @@ const FLAGS: Record<string, Flag> = {
   'legend-caps': bool('legendCaps'),
   'legend-color': str('legendColor'),
   'legend-backdrop': str('legendBackdrop'),
+  map: bool('mapShow'),
+  'map-at': { type: 'string', apply: (v, s) => void Object.assign(s, { mapShow: true, mapPlace: 'custom', mapAt: v }) },
+  'map-opacity': num('mapOpacity'),
 };
 
 const { values, positionals } = parseArgs({
@@ -68,6 +74,7 @@ const { values, positionals } = parseArgs({
     sample: { type: 'boolean', default: false },
     out: { type: 'string', default: 'out/stridemap.svg' },
     preset: { type: 'string' },
+    'map-address': { type: 'string' },
     ...Object.fromEntries(Object.entries(FLAGS).map(([name, f]) => [name, { type: f.type }])),
   },
 });
@@ -99,10 +106,38 @@ const workouts = values.sample
     });
 process.stderr.write('\n');
 
+// Address lookup (the one step that sends anything off this machine) only when asked for.
+if (values['map-address']) {
+  const hit = await geocode(values['map-address'] as string, fetch, { 'User-Agent': 'stridemap-cli (github.com/mischief-page/stridemap)' });
+  if (!hit) {
+    console.error(`No match for "${values['map-address']}".`);
+    process.exit(1);
+  }
+  console.log(`Map at ${hit.label}`);
+  Object.assign(state, { mapShow: true, mapPlace: 'custom', mapAt: `${hit.lat}, ${hit.lon}` });
+}
+
 const prepared = prepareWorkouts(workouts);
-const { filters, layout, style } = toRenderRequest(state);
-const scene = buildScene(prepared, filters, layout);
-const svg = renderSvg(scene, style);
+const { filters, layout, style, map } = toRenderRequest(state);
+let scene = buildScene(prepared, filters, layout);
+let svg: string;
+if (map) {
+  const at = map.at === 'detected' ? detectHome(prepared.map((w) => ({ lat: w.lat[0]!, lon: w.lon[0]! }))) : map.at;
+  if (!at) {
+    console.error('--map-at needs "lat, lon", e.g. --map-at "41.8781, -87.6298"');
+    process.exit(1);
+  }
+  scene = buildScene(prepared, filters, { ...layout, geoAnchor: { lat: at.lat, lon: at.lon, radiusM: NEAR_RADIUS_M } });
+  if (!scene.workoutCount) {
+    console.error(`No routes start within ${NEAR_RADIUS_M} m of ${at.lat}, ${at.lon}.`);
+    process.exit(1);
+  }
+  const features = await new MapLoader().load(at, visibleMeters(scene, style));
+  svg = renderSvg(scene, style, features);
+  console.log(`Map at ${at.lat.toFixed(5)}, ${at.lon.toFixed(5)}; ${scene.geoAnchor!.excluded} routes starting elsewhere left out.`);
+} else {
+  svg = renderSvg(scene, style);
+}
 
 const out = values.out as string;
 await mkdir(dirname(out), { recursive: true });

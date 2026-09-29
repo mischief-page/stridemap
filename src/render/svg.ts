@@ -1,5 +1,6 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
+import type { Bounds } from '../core/types';
 import { renderMark } from './brand';
 import { canvasSize } from './canvas';
 import { round1 as r } from './format';
@@ -7,6 +8,9 @@ import { DEFAULT_LEGEND, escapeXml, legendHeight, renderLegend, type LegendFacts
 import { renderScale, scaleUsesRings, type ScaleStyle, type Units } from './scale';
 import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
 import { catmullRomControls, smoothPolyline } from './smooth';
+import { simplify } from './simplify';
+import { renderMap, type MapStyle } from './map';
+import { MAP_ATTRIBUTION, type MapFeatures } from '../map/tiles';
 
 export type Blend = 'normal' | 'screen' | 'multiply';
 
@@ -44,6 +48,8 @@ export interface StyleOptions {
    * routes never run underneath the text.
    */
   textBand: boolean;
+  /** A translucent street map under the routes; drawn only when features are given to renderSvg. */
+  map: MapStyle | null;
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
@@ -63,6 +69,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   legend: DEFAULT_LEGEND,
   textBand: false,
   mark: true,
+  map: null,
 };
 
 const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
@@ -78,20 +85,34 @@ const SIMPLIFY_PX = 1;
 /** Curves through the kept points follow a smoothed route closely, so fewer points are needed. */
 const SIMPLIFY_CURVED_PX = 2;
 
-export function renderSvg(scene: Scene, style: StyleOptions): string {
-  const { width: W, height: H, padding: P } = style;
-  const { bounds: b } = scene;
-  const frame = { width: W, height: H, padding: P, background: style.background };
-  const facts: LegendFacts = {
+/** Where the art sits on the canvas and how meters map onto it. */
+export interface ArtFrame {
+  artTop: number;
+  artH: number;
+  /** Pixels per meter. */
+  scale: number;
+  /** Screen position of the anchor (0, 0). */
+  ox: number;
+  oy: number;
+}
+
+function legendFacts(scene: Scene, style: StyleOptions): LegendFacts {
+  return {
     dateRange: scene.dateRange,
     count: scene.workoutCount,
     distanceM: scene.totalDistanceM,
     activityTypes: scene.activityTypes,
     units: style.units,
   };
+}
+
+export function artFrame(scene: Scene, style: StyleOptions): ArtFrame {
+  const { width: W, height: H, padding: P } = style;
+  const { bounds: b } = scene;
+  const frame = { width: W, height: H, padding: P, background: style.background };
 
   // The art fills the canvas, or everything but the legend's band.
-  const textH = style.textBand ? legendHeight(frame, style.legend, facts) : 0;
+  const textH = style.textBand ? legendHeight(frame, style.legend, legendFacts(scene, style)) : 0;
   const band = textH ? textH + P * 1.5 : 0;
   const bandAtTop = style.legend.position.startsWith('top');
   const artTop = bandAtTop ? band : 0;
@@ -103,6 +124,26 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
   const scale = Math.min((W - 2 * P) / bw, (artH - 2 * P) / bh);
   const ox = W / 2 - ((b.minX + b.maxX) / 2) * scale;
   const oy = artTop + artH / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
+  return { artTop, artH, scale, ox, oy };
+}
+
+/** The part of the world the art shows, in meters around the anchor: what a map behind it has to cover. */
+export function visibleMeters(scene: Scene, style: StyleOptions): Bounds {
+  const { artTop, artH, scale, ox, oy } = artFrame(scene, style);
+  return {
+    minX: -ox / scale,
+    maxX: (style.width - ox) / scale,
+    minY: (oy - artTop - artH) / scale,
+    maxY: (oy - artTop) / scale,
+  };
+}
+
+export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFeatures | null): string {
+  const { width: W, height: H, padding: P } = style;
+  const frame = { width: W, height: H, padding: P, background: style.background };
+  const facts = legendFacts(scene, style);
+  const { artTop, artH, scale, ox, oy } = artFrame(scene, style);
+  const map = style.map && mapFeatures ? { style: style.map, features: mapFeatures } : null;
 
   const body = drawRoutes(scene, style, scale, ox, oy);
   // Keep the scale bar out of the legend's way, and the mark out of the bar's.
@@ -140,6 +181,7 @@ export function renderSvg(scene: Scene, style: StyleOptions): string {
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
 <svg class="art" y="${r(artTop)}" width="${W}" height="${r(artH)}" viewBox="0 ${r(artTop)} ${W} ${r(artH)}">
+${map ? renderMap(map.features, map.style, { scale, ox, oy, top: artTop, width: W, height: artH, background: style.background }) : ''}
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
 ${body}
 </g>
@@ -147,7 +189,7 @@ ${rings ? scaleSvg : ''}
 </svg>
 ${rings ? '' : scaleSvg}
 ${renderLegend(frame, style.legend, facts)}
-${style.mark ? renderMark(frame, markSide) : ''}
+${renderMark(frame, markSide, style.mark, map ? MAP_ATTRIBUTION : null)}
 </svg>
 </svg>`;
 }
@@ -230,43 +272,4 @@ function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number
   return paths
     .map((d, i) => (d ? `<path stroke="${formatHex(color(i / (BINS - 1)))}"${blendStyle} d="${d}"/>` : ''))
     .join('\n');
-}
-
-/**
- * Ramer–Douglas–Peucker line simplification. Returns the indices of the points
- * to keep so that the line never moves more than `tolerance` pixels.
- */
-function simplify(x: Float64Array, y: Float64Array, tolerance: number): number[] {
-  const n = x.length;
-  if (n < 3) return Array.from({ length: n }, (_, i) => i);
-  const keep = new Uint8Array(n);
-  keep[0] = keep[n - 1] = 1;
-  const stack: [number, number][] = [[0, n - 1]];
-  const tol2 = tolerance * tolerance;
-  while (stack.length) {
-    const [a, b] = stack.pop()!;
-    const dx = x[b]! - x[a]!;
-    const dy = y[b]! - y[a]!;
-    const len2 = dx * dx + dy * dy;
-    let worst = -1;
-    let worstD = tol2;
-    for (let i = a + 1; i < b; i++) {
-      let px = x[i]! - x[a]!;
-      let py = y[i]! - y[a]!;
-      if (len2 > 0) {
-        const f = Math.max(0, Math.min(1, (px * dx + py * dy) / len2));
-        px -= f * dx;
-        py -= f * dy;
-      }
-      const d = px * px + py * py;
-      if (d > worstD) { worstD = d; worst = i; }
-    }
-    if (worst !== -1) {
-      keep[worst] = 1;
-      stack.push([a, worst], [worst, b]);
-    }
-  }
-  const out: number[] = [];
-  for (let i = 0; i < n; i++) if (keep[i]) out.push(i);
-  return out;
 }

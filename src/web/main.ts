@@ -2,6 +2,8 @@ import { PRESETS, type Preset } from '../render/presets';
 import { LOOK_KEYS, toRenderRequest, type EditorState } from '../render/settings';
 import { readState, refresh, watchControls, writeState } from './controls';
 import { createEngine } from './engine';
+import type { MapResult } from './worker';
+import { GEOCODE_ATTRIBUTION, geocode } from '../map/geocode';
 import type { Product } from '../print/catalog';
 import { productCards } from './order-ui';
 import { presetCards } from './presets-ui';
@@ -29,9 +31,12 @@ const engine = createEngine({
     hasData = true;
     render();
   },
-  onRendered({ svg, shown, withGps }, more) {
+  onRendered({ svg, shown, withGps, map }, more) {
     current.svg = svg;
     status.textContent = `${shown} of ${withGps} outdoor workouts with GPS shown.`;
+    $('mapStatus').textContent = mapStatus(map);
+    // The underlying error, for anyone curious why the map didn't load.
+    $('mapStatus').title = map && !map.ok ? (map.message ?? '') : '';
     $<HTMLButtonElement>('downloadSvg').disabled = false;
     $<HTMLButtonElement>('downloadPng').disabled = false;
     void showPreview(preview, svg).then((shown) => {
@@ -46,8 +51,8 @@ const engine = createEngine({
 
 function render() {
   if (!hasData) return;
-  const { filters, layout, style } = toRenderRequest(readState());
-  engine.render({ filters, layout, style });
+  const { filters, layout, style, map } = toRenderRequest(readState());
+  engine.render({ filters, layout, style, map });
   current = { ...current, width: style.width, height: style.height };
   // The preview takes the image's shape, whatever the window's.
   preview.style.setProperty('--ratio', String(style.width / style.height));
@@ -102,6 +107,50 @@ $('dateRanges').addEventListener('click', (e) => {
   }[range];
   writeState({ from, to });
   render();
+});
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+
+function mapStatus(map: MapResult | null): string {
+  if (!map) return '';
+  if (!map.ok) {
+    return {
+      'no-point': 'Enter coordinates (like 41.8781, -87.6298) or find an address to place the map.',
+      'no-routes': 'No routes shown start within 300 m of this point, so the map is off.',
+      offline: "Couldn't load the map (are you offline?). Routes are drawn without it.",
+    }[map.reason];
+  }
+  const where = `${map.at.lat.toFixed(4)}, ${map.at.lon.toFixed(4)}`;
+  const left = map.excluded ? ` ${map.excluded} starting elsewhere are left out.` : '';
+  return `Map centred on ${map.detected ? 'where most routes start' : where}. ${map.shown} routes on it.${left}`;
+}
+
+// Address search only on request: it's the one thing that sends text off the device.
+async function findAddress() {
+  const address = $<HTMLInputElement>('mapAddress').value.trim();
+  if (!address) return;
+  const note = $('mapFindNote');
+  const button = $<HTMLButtonElement>('mapFind');
+  button.disabled = true;
+  note.textContent = 'Searching…';
+  try {
+    const hit = await geocode(address);
+    if (hit) {
+      writeState({ mapAt: `${hit.lat.toFixed(6)}, ${hit.lon.toFixed(6)}` });
+      note.textContent = `Found: ${hit.label}. ${GEOCODE_ATTRIBUTION}.`;
+      render();
+    } else {
+      note.textContent = 'No match. Try adding the city, or paste coordinates.';
+    }
+  } catch (err) {
+    note.textContent = `Couldn't search: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    button.disabled = false;
+  }
+}
+$('mapFind').addEventListener('click', () => void findAddress());
+$('mapAddress').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') void findAddress();
 });
 
 // ── Styles ────────────────────────────────────────────────────────────────────
