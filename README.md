@@ -53,6 +53,17 @@ CLI options: `--aspect 3:2|4:3|5:4|7:5|iso|16:9|1:1` (default 3:2 landscape; add
 
 Legend options (the legend appears when any of the first three are given): `--title "…"`, `--name "…"`, `--dates`, `--date-format month|day|year`, `--legend-position top-left|top-center|top-right|bottom-left|bottom-center|bottom-right`, `--legend-font sans|serif|mono|rounded`, `--legend-size 0.5..2`, `--legend-caps`, `--legend-color`, `--legend-backdrop halo|panel|none`, `--stats` (a totals line such as "412 runs · 2,318 mi"), `--text-band` (keep the legend in its own band so routes never run under it).
 
+## Deploy
+
+The site is hosted on Cloudflare (static assets on Workers), currently at https://stridemap.matt-melchiori.workers.dev.
+
+```sh
+npx wrangler login   # once per machine
+npm run deploy       # builds and publishes
+```
+
+Configuration is in `wrangler.jsonc`; security headers are in `public/_headers`.
+
 ## How it works
 
 See [DESIGN.md](DESIGN.md) for the rules and the pipeline.
