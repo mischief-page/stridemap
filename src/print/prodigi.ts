@@ -83,3 +83,14 @@ export async function createOrder(item: PrintItem, recipient: Recipient, referen
   });
   return order;
 }
+
+export interface OrderStatus {
+  id: string;
+  status: { stage: string; issues: { errorCode?: string; description?: string }[]; details: Record<string, string> };
+  items: { sku: string; status: string }[];
+  shipments?: { carrier?: { name?: string }; tracking?: { number?: string; url?: string } }[];
+}
+
+export async function getOrder(id: string): Promise<OrderStatus> {
+  return (await call<{ order: OrderStatus }>(`/orders/${id}`)).order;
+}

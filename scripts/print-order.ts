@@ -6,9 +6,10 @@
  *
  * The file is uploaded to the R2 bucket (public, files deleted after 30 days)
  * so Prodigi can fetch it. Settings come from .env.local:
- *   PRODIGI_API_KEY, PRODIGI_API_URL, R2_BUCKET, R2_PUBLIC_URL, and the
- *   recipient as PRINT_TO_NAME, PRINT_TO_EMAIL, PRINT_TO_LINE1, PRINT_TO_LINE2,
- *   PRINT_TO_CITY, PRINT_TO_STATE, PRINT_TO_ZIP (US addresses).
+ *   PRODIGI_API_KEY, PRODIGI_API_URL, R2_BUCKET, R2_PUBLIC_URL, and, for live
+ *   orders only, the recipient as PRINT_TO_NAME, PRINT_TO_EMAIL, PRINT_TO_LINE1,
+ *   PRINT_TO_LINE2, PRINT_TO_CITY, PRINT_TO_STATE, PRINT_TO_ZIP (US addresses).
+ *   Test orders use a placeholder address.
  *
  * Orders go to Prodigi's free test environment unless --live is given; a live
  * order also needs --confirm-live, because live orders are charged and shipped.
@@ -55,20 +56,24 @@ if (!imageUrl) {
   imageUrl = `${env('R2_PUBLIC_URL')}/${key}`;
 }
 
-const order = await createOrder(
-  { ...item, imageUrl },
-  {
-    name: env('PRINT_TO_NAME'),
-    email: process.env.PRINT_TO_EMAIL,
-    address: {
-      line1: env('PRINT_TO_LINE1'),
-      line2: process.env.PRINT_TO_LINE2,
-      townOrCity: env('PRINT_TO_CITY'),
-      stateOrCounty: env('PRINT_TO_STATE'),
-      postalOrZipCode: env('PRINT_TO_ZIP'),
-      countryCode: 'US',
-    },
-  },
-  `proof-${Date.now()}`,
-);
+// Test orders go nowhere, so they use a placeholder; only live orders need (and use) a real address.
+const recipient = isLive()
+  ? {
+      name: env('PRINT_TO_NAME'),
+      email: process.env.PRINT_TO_EMAIL,
+      address: {
+        line1: env('PRINT_TO_LINE1'),
+        line2: process.env.PRINT_TO_LINE2,
+        townOrCity: env('PRINT_TO_CITY'),
+        stateOrCounty: env('PRINT_TO_STATE'),
+        postalOrZipCode: env('PRINT_TO_ZIP'),
+        countryCode: 'US',
+      },
+    }
+  : {
+      name: 'Test Order',
+      address: { line1: '1 Test Street', townOrCity: 'Chicago', stateOrCounty: 'IL', postalOrZipCode: '60601', countryCode: 'US' },
+    };
+console.log(`Image: ${imageUrl}`);
+const order = await createOrder({ ...item, imageUrl }, recipient, `proof-${Date.now()}`);
 console.log(`Ordered: ${order.id} (${order.status.stage}). Track it in the Prodigi dashboard.`);

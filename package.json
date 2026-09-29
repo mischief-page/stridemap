@@ -21,7 +21,8 @@
     "test:e2e": "npm run build:single && playwright test",
     "deploy": "npm run build && wrangler deploy",
     "print-file": "tsx --env-file=.env.local scripts/print-file.ts",
-    "print-order": "tsx --env-file=.env.local scripts/print-order.ts"
+    "print-order": "tsx --env-file=.env.local scripts/print-order.ts",
+    "print-status": "tsx --env-file=.env.local scripts/print-status.ts"
   },
   "dependencies": {
     "@zip.js/zip.js": "^2.18.2",

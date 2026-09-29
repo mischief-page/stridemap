@@ -73,6 +73,7 @@ Settings live in `.env.local` (never committed): `PRODIGI_API_KEY` and `PRODIGI_
 ```sh
 npm run print-file -- --preset ember --sku GLOBAL-FAP-18X24     # 300 DPI print file in out/print/
 npm run print-order -- --file out/print/ember-GLOBAL-FAP-18X24.png --sku GLOBAL-FAP-18X24
+npm run print-status -- ord_1175284                                 # production steps, issues, tracking
 ```
 
 `print-order` uses the free test environment unless given `--live`; a live order also needs `--confirm-live`, since live orders are charged and shipped. `--image-url` skips the upload and uses an image that's already online.
