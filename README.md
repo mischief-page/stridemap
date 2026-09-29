@@ -57,6 +57,8 @@ Legend options (the legend appears when any of the first three are given): `--ti
 
 The site is hosted on Cloudflare (static assets on Workers), currently at https://stridemap.matt-melchiori.workers.dev.
 
+Every push to `main` deploys automatically once the unit and browser tests pass (the `deploy` job in `.github/workflows/ci.yml`, using the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets). To deploy by hand:
+
 ```sh
 npx wrangler login   # once per machine
 npm run deploy       # builds and publishes
