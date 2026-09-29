@@ -168,6 +168,9 @@ function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: numbe
 
   const { domain } = scene;
   const binOf = (v: number) => {
+    // A point with no value (e.g. a workout whose pace can't be worked out
+    // because the watch recorded no movement) gets the cool end of the scale.
+    if (!Number.isFinite(v)) return 0;
     const t = (v - domain[0]) / (domain[1] - domain[0]);
     return Math.round(Math.min(1, Math.max(0, t)) * (BINS - 1));
   };

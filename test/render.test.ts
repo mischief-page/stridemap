@@ -52,3 +52,20 @@ describe('made-with mark', () => {
     expect(mark(renderSvg(scene, legendLeft))?.[2]).toBe('start');
   });
 });
+
+describe('workouts without a usable pace', () => {
+  it('still draw in pace mode', async () => {
+    const { trackFromPoints } = await import('../src/core/track');
+    // Every fix reports zero speed and barely moves (e.g. a watch left recording),
+    // so no pace can be worked out for any point.
+    const still = trackFromPoints(
+      Array.from({ length: 50 }, (_, s) => ({ t: s * 1000, lat: 40 + s * 1e-7, lon: -100, speed: 0, hAcc: 5 })),
+    );
+    const workouts = [
+      ...syntheticWorkouts(5),
+      { id: 'still', type: 'walking' as const, start: 0, end: 50_000, distanceM: null, indoor: false, track: still },
+    ];
+    const scene = buildScene(prepareWorkouts(workouts), { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'pace', fitPercentile: 95, radialExponent: 1 });
+    expect(() => renderSvg(scene, DEFAULT_STYLE)).not.toThrow();
+  });
+});
