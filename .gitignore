@@ -11,3 +11,6 @@ export_cda.xml
 apple_health_export/
 data/
 out/
+e2e/.cache/
+test-results/
+playwright-report/
