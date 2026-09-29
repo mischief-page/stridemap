@@ -143,6 +143,29 @@ button {
 }
 
 .presets { margin-top: 6px; gap: 6px; }
+
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px 2px;
+  font-size: 0.75rem;
+  text-align: center;
+  min-width: 0;
+}
+
+.preset-card span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.preset-card svg { width: 100%; height: auto; display: block; border-radius: 3px; }
+.preset-card[aria-checked='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .presets button, button.small { padding: 4px 8px; font-size: 0.8rem; }
 
 button:hover:not(:disabled) { border-color: var(--accent); }

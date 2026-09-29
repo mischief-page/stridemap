@@ -1,8 +1,8 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
 import { canvasSize } from './canvas';
-import { DEFAULT_LEGEND, escapeXml, renderLegend, type LegendOptions } from './legend';
-import { renderScale, type ScaleStyle, type Units } from './scale';
+import { DEFAULT_LEGEND, escapeXml, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from './legend';
+import { renderScale, scaleUsesRings, type ScaleStyle, type Units } from './scale';
 import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
 import { catmullRomControls, smoothPolyline } from './smooth';
 
@@ -35,6 +35,11 @@ export interface StyleOptions {
   /** Color of the scale bar or rings and their labels; null picks white or black to suit the background. */
   scaleColor: string | null;
   legend: LegendOptions;
+  /**
+   * Give the legend its own band at the top or bottom of the poster, so the
+   * routes never run underneath the text.
+   */
+  textBand: boolean;
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
@@ -52,6 +57,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   units: 'km',
   scaleColor: null,
   legend: DEFAULT_LEGEND,
+  textBand: false,
 };
 
 const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
@@ -70,49 +76,73 @@ const SIMPLIFY_CURVED_PX = 2;
 export function renderSvg(scene: Scene, style: StyleOptions): string {
   const { width: W, height: H, padding: P } = style;
   const { bounds: b } = scene;
+  const frame = { width: W, height: H, padding: P, background: style.background };
+  const facts: LegendFacts = {
+    dateRange: scene.dateRange,
+    count: scene.workoutCount,
+    distanceM: scene.totalDistanceM,
+    activityTypes: scene.activityTypes,
+    units: style.units,
+  };
+
+  // The art fills the canvas, or everything but the legend's band.
+  const textH = style.textBand ? legendHeight(frame, style.legend, facts) : 0;
+  const band = textH ? textH + P * 1.5 : 0;
+  const bandAtTop = style.legend.position.startsWith('top');
+  const artTop = bandAtTop ? band : 0;
+  const artH = H - band;
 
   // Uniform scale so north stays up and shapes aren't stretched, then center the box.
   const bw = Math.max(b.maxX - b.minX, 1);
   const bh = Math.max(b.maxY - b.minY, 1);
-  const scale = Math.min((W - 2 * P) / bw, (H - 2 * P) / bh);
+  const scale = Math.min((W - 2 * P) / bw, (artH - 2 * P) / bh);
   const ox = W / 2 - ((b.minX + b.maxX) / 2) * scale;
-  const oy = H / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
+  const oy = artTop + artH / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
 
   const body = drawRoutes(scene, style, scale, ox, oy);
   const grain = style.pencil !== null && style.pencil.grain > 0;
+  const scaleSvg = renderScale(
+    {
+      width: W,
+      height: H,
+      padding: P,
+      pxPerMeter: scale,
+      anchorX: ox,
+      anchorY: oy,
+      radialExponent: scene.radialExponent,
+      // Keep the bar out of the legend's way.
+      barSide: style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left',
+    },
+    style.scale,
+    style.units,
+    style.background,
+    style.scaleColor,
+  );
+  // Rings belong to the art and are clipped with it; a bar sits in the margin.
+  const rings = scaleUsesRings(style.scale, scene.radialExponent);
 
-  // The inner <svg> clips everything to the canvas. The outer one's viewport can
-  // be wider than the image when it's embedded in a box of another shape, and
-  // routes that run off the edge would otherwise show in the extra space.
+  // The outer viewport can be wider than the image when it's embedded in a box
+  // of another shape, so the inner <svg> clips everything to the canvas. The
+  // art has its own <svg> too, clipping routes that run off its edge (or into
+  // the text band) while keeping canvas coordinates.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
 <title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
 <svg width="${W}" height="${H}">
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
+<svg class="art" y="${r1(artTop)}" width="${W}" height="${r1(artH)}" viewBox="0 ${r1(artTop)} ${W} ${r1(artH)}">
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
 ${body}
 </g>
-${renderScale(
-  {
-    width: W,
-    height: H,
-    padding: P,
-    pxPerMeter: scale,
-    anchorX: ox,
-    anchorY: oy,
-    radialExponent: scene.radialExponent,
-    // Keep the bar out of the legend's way.
-    barSide: style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left',
-  },
-  style.scale,
-  style.units,
-  style.background,
-  style.scaleColor,
-)}
-${renderLegend({ width: W, height: H, padding: P, background: style.background }, style.legend, scene.dateRange)}
+${rings ? scaleSvg : ''}
+</svg>
+${rings ? '' : scaleSvg}
+${renderLegend(frame, style.legend, facts)}
 </svg>
 </svg>`;
 }
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /**
  * The route shapes last drawn, one path per color step. They depend only on

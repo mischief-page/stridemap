@@ -1,5 +1,6 @@
 import { cleanTrack } from './clean';
 import { anchorTrack, compressRadially, fitBounds, quantiles, type Bounds } from './layout';
+import { METERS_PER_DEG_LAT } from './track';
 import { HeatGrid, paceSeries } from './values';
 import type { ActivityType, LocalTrack, Track, Workout } from './types';
 
@@ -34,6 +35,10 @@ export interface Scene {
   workoutCount: number;
   /** Start times of the first and last workout drawn, or null if none. */
   dateRange: [number, number] | null;
+  /** Total GPS distance of the workouts drawn, in meters. */
+  totalDistanceM: number;
+  /** Which activity types are drawn, for wording like "412 runs". */
+  activityTypes: ActivityType[];
 }
 
 export function filterWorkouts(workouts: Workout[], filters: Filters): Workout[] {
@@ -54,6 +59,8 @@ interface Prepared {
   y: Float64Array;
   /** Negated pace, so larger always means "hotter" (faster). */
   speedValue: Float64Array;
+  /** Length of the cleaned GPS track, in meters. */
+  distanceM: number;
 }
 const prepared = new WeakMap<Workout, Prepared | null>();
 
@@ -61,7 +68,10 @@ function prepare(w: Workout): Prepared | null {
   let p = prepared.get(w);
   if (p === undefined) {
     const track = cleanTrack(w.track as Track);
-    p = track.t.length >= 2 ? { track, ...anchorTrack(track), speedValue: paceSeries(track).map((v) => -v) } : null;
+    p =
+      track.t.length >= 2
+        ? { track, ...anchorTrack(track), speedValue: paceSeries(track).map((v) => -v), distanceM: trackDistance(track) }
+        : null;
     prepared.set(w, p);
   }
   return p;
@@ -107,6 +117,8 @@ export function buildScene(workouts: Workout[], filters: Filters, opts: LayoutOp
     domain: colorDomain(tracks, opts.colorMode),
     radialExponent: opts.radialExponent,
     workoutCount: tracks.length,
+    totalDistanceM: selected.reduce((sum, s) => sum + s.p.distanceM, 0),
+    activityTypes: [...new Set(selected.map((s) => s.w.type))],
     dateRange: selected.length
       ? [Math.min(...selected.map((s) => s.w.start)), Math.max(...selected.map((s) => s.w.start))]
       : null,
@@ -131,4 +143,17 @@ function colorDomain(tracks: LocalTrack[], mode: ColorMode): [number, number] {
   const lo = mode === 'frequency' ? 0 : p05;
   const hi = mode === 'frequency' ? p99 : p95;
   return [lo, hi > lo ? hi : lo + 1];
+}
+
+/** Flat-earth length of a track; accurate over the few meters between GPS fixes. */
+function trackDistance(track: Track): number {
+  const mPerDegLon = METERS_PER_DEG_LAT * Math.cos((track.lat[0]! * Math.PI) / 180);
+  let total = 0;
+  for (let i = 1; i < track.t.length; i++) {
+    total += Math.hypot(
+      (track.lon[i]! - track.lon[i - 1]!) * mPerDegLon,
+      (track.lat[i]! - track.lat[i - 1]!) * METERS_PER_DEG_LAT,
+    );
+  }
+  return total;
 }

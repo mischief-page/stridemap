@@ -27,6 +27,12 @@
         </section>
 
         <section>
+          <h2>Style</h2>
+          <div class="presets-grid" id="presetCards" role="radiogroup" aria-label="Poster style"></div>
+          <small id="presetNote">Pick a style to start from, then change anything below.</small>
+        </section>
+
+        <section>
           <h2>Workouts</h2>
           <fieldset class="row" id="types">
             <label><input type="checkbox" value="running" checked /> Runs</label>
@@ -145,6 +151,7 @@
             <label>Title <input type="text" id="legendTitle" placeholder="e.g. Two years of running" /></label>
             <label>Name <input type="text" id="legendName" placeholder="Your name" /></label>
             <div class="row">
+              <label><input type="checkbox" id="legendStats" /> Totals</label>
               <label><input type="checkbox" id="legendDates" checked /> Dates shown</label>
               <label>
                 <select id="legendDateFormat" aria-label="Date format">
@@ -154,6 +161,7 @@
                 </select>
               </label>
             </div>
+            <label class="inline"><input type="checkbox" id="textBand" /> Keep text in its own band</label>
             <label>Placement
               <select id="legendPosition">
                 <option value="top-left">Top left</option>

@@ -65,6 +65,19 @@ So viewers can judge how long routes are, the image carries a distance scale in 
 
 When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale color can be chosen; by default it is white or black depending on how light the background is. Labels always get a halo in the background color.
 
+### Style presets
+Five finished looks someone can pick and be happy with, shown as cards at the top of the editor. The page opens on Afterglow. Each is an 18×24 in portrait poster (the size competitors and our catalog center on) with "How often" coloring, the legend in its own band, and totals plus dates under the title.
+
+| Preset | Look | Legend |
+| --- | --- | --- |
+| Gallery | Light grey to navy on off-white; ink blend; light smoothing | Serif, spaced capitals, bottom center |
+| Ember | Dark rust to orange on charcoal; glow blend | Sans, capitals, bottom center |
+| Afterglow | Blue to gold on midnight; glow blend; smoothing 8 | Sans, top left |
+| Terracotta | Peach to rust on cream; ink blend; heavy smoothing | Serif, bottom left |
+| Sketch | Graphite pencil on warm paper | Mono, bottom right |
+
+A preset sets the look (colors, lines, type, print shape, scale) but never the person's own choices: filters, title and name text, and units. An empty title becomes "Every Step" so the poster reads as finished. Changing any look control afterwards marks the style as custom. Presets live in `src/render/presets.ts`, shared by the page and the CLI (`--preset`).
+
 ### Legend
 An optional legend with up to three lines: a **title**, a **name**, and the **dates shown**. The dates are the first and last workout actually drawn, so they follow the filters, formatted as months ("Jan 2024 – Aug 2025"), days or years in the viewer's locale.
 
@@ -73,6 +86,9 @@ Formatting and placement:
 - Font: sans, serif, mono or rounded. Only system fonts, so the single-file page works offline.
 - Size (50–200%), color (automatic white/black to suit the background, or chosen), and the title optionally in spaced capitals.
 - Backdrop: a halo in the background color, a translucent panel, or none. The SVG can't measure text, so the panel width is estimated from the character count.
+
+- Totals: an optional line such as "412 runs · 2,318 mi" (GPS distance of the workouts drawn, in the chosen units; mixed types read "walks & runs" or "activities"). It shares the last line with the dates.
+- Text band: optionally the legend gets its own band at the top or bottom (its height plus 1.5× the padding), and the routes are fitted into, and clipped to, the rest of the canvas, so they never run under the text.
 
 The title also becomes the SVG's `<title>`. All user text is XML-escaped.
 

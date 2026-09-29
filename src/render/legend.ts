@@ -1,4 +1,5 @@
-import { inkFor } from './scale';
+import type { ActivityType } from '../core/types';
+import { inkFor, type Units } from './scale';
 
 export type LegendPosition =
   | 'top-left'
@@ -42,6 +43,8 @@ export interface LegendOptions {
   name: string;
   showDates: boolean;
   dateFormat: DateFormat;
+  /** A line of totals, e.g. "412 runs · 2,318 mi". */
+  showStats: boolean;
   position: LegendPosition;
   font: LegendFont;
   /** Multiplier on the default text size. */
@@ -61,6 +64,7 @@ export const DEFAULT_LEGEND: LegendOptions = {
   name: '',
   showDates: true,
   dateFormat: 'month',
+  showStats: false,
   position: 'top-left',
   font: 'sans',
   size: 1,
@@ -88,29 +92,80 @@ interface Frame {
   background: string;
 }
 
-/**
- * Draws the legend. The SVG has to stand on its own (no fonts to measure
- * with), so panel widths are estimated from character counts.
- */
-export function renderLegend(frame: Frame, legend: LegendOptions, dateRange: [number, number] | null): string {
-  if (!legend.show) return '';
+/** What the drawing shows, for the dates and totals lines. */
+export interface LegendFacts {
+  dateRange: [number, number] | null;
+  count: number;
+  distanceM: number;
+  activityTypes: ActivityType[];
+  units: Units;
+}
+
+const NOUNS: Record<ActivityType, [string, string]> = {
+  running: ['run', 'runs'],
+  walking: ['walk', 'walks'],
+  hiking: ['hike', 'hikes'],
+};
+
+/** "412 runs · 2,318 mi"; mixed types read "walks & runs" or "activities". */
+export function formatStats(facts: LegendFacts, locale?: string): string {
+  const types = facts.activityTypes;
+  const [one, many] =
+    types.length === 1
+      ? NOUNS[types[0]!]
+      : types.length === 2 && !types.includes('hiking')
+        ? ['walk or run', 'walks & runs']
+        : ['activity', 'activities'];
+  const n = new Intl.NumberFormat(locale);
+  const distance = facts.distanceM / (facts.units === 'mi' ? 1609.344 : 1000);
+  return `${n.format(facts.count)} ${facts.count === 1 ? one : many} · ${n.format(Math.round(distance))} ${facts.units}`;
+}
+
+interface Line {
+  text: string;
+  size: number;
+  opacity: number;
+  weight: number;
+  caps: boolean;
+}
+
+function legendLines(frame: Frame, legend: LegendOptions, facts: LegendFacts): { lines: Line[]; base: number } {
   const base = (Math.min(frame.width, frame.height) / 28) * legend.size;
-  const lines: { text: string; size: number; opacity: number; weight: number; caps: boolean }[] = [];
+  const lines: Line[] = [];
+  if (!legend.show) return { lines, base };
   if (legend.title.trim()) {
     lines.push({ text: legend.title.trim(), size: base, opacity: 1, weight: 600, caps: legend.uppercaseTitle });
   }
   if (legend.name.trim()) {
     lines.push({ text: legend.name.trim(), size: base * 0.6, opacity: 0.9, weight: 400, caps: false });
   }
-  if (legend.showDates && dateRange) {
-    lines.push({
-      text: formatDateRange(dateRange, legend.dateFormat, legend.locale),
-      size: base * 0.5,
-      opacity: 0.7,
-      weight: 400,
-      caps: false,
-    });
+  // Totals and dates share the last, smallest line.
+  const details = [
+    legend.showStats && facts.count ? formatStats(facts, legend.locale) : '',
+    legend.showDates && facts.dateRange ? formatDateRange(facts.dateRange, legend.dateFormat, legend.locale) : '',
+  ].filter(Boolean);
+  if (details.length) {
+    lines.push({ text: details.join(' · '), size: base * 0.5, opacity: 0.7, weight: 400, caps: false });
   }
+  return { lines, base };
+}
+
+/** Line boxes: each line takes 1.25× its font size, with a little extra under the title. */
+function lineGaps(lines: Line[]): number[] {
+  return lines.map((l, i) => l.size * 1.25 + (i === 0 && lines.length > 1 ? l.size * 0.15 : 0));
+}
+
+/** Height of the legend's text block in pixels (0 when there's nothing to show). */
+export function legendHeight(frame: Frame, legend: LegendOptions, facts: LegendFacts): number {
+  return lineGaps(legendLines(frame, legend, facts).lines).reduce((a, b) => a + b, 0);
+}
+
+/**
+ * Draws the legend. The SVG has to stand on its own (no fonts to measure
+ * with), so panel widths are estimated from character counts.
+ */
+export function renderLegend(frame: Frame, legend: LegendOptions, facts: LegendFacts): string {
+  const { lines, base } = legendLines(frame, legend, facts);
   if (!lines.length) return '';
 
   const ink = legend.color ?? inkFor(frame.background);
@@ -118,13 +173,12 @@ export function renderLegend(frame: Frame, legend: LegendOptions, dateRange: [nu
   const anchor = horizontal === 'left' ? 'start' : horizontal === 'right' ? 'end' : 'middle';
   const x = horizontal === 'left' ? frame.padding : horizontal === 'right' ? frame.width - frame.padding : frame.width / 2;
 
-  // Line boxes: each line takes 1.25× its font size, with a little extra under the title.
-  const gaps = lines.map((l, i) => l.size * 1.25 + (i === 0 && lines.length > 1 ? l.size * 0.15 : 0));
+  const gaps = lineGaps(lines);
   const blockHeight = gaps.reduce((a, b) => a + b, 0);
   const top = vertical === 'top' ? frame.padding : frame.height - frame.padding - blockHeight;
 
   const charWidth = legend.font === 'mono' ? 0.6 : legend.font === 'serif' ? 0.5 : 0.54;
-  const widthOf = (l: (typeof lines)[number]) => l.text.length * l.size * charWidth * (l.caps ? 1.3 : 1);
+  const widthOf = (l: Line) => l.text.length * l.size * charWidth * (l.caps ? 1.3 : 1);
   const blockWidth = Math.max(...lines.map(widthOf));
 
   let y = top;

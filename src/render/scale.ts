@@ -43,6 +43,11 @@ export function inkFor(background: string): string {
   return wcagLuminance(background) > 0.4 ? '#000000' : '#ffffff';
 }
 
+/** Squashed routes need rings: a straight bar can't be accurate when distance isn't linear. */
+export function scaleUsesRings(style: ScaleStyle, radialExponent: number): boolean {
+  return style === 'rings' || (style !== 'off' && radialExponent !== 1);
+}
+
 export function renderScale(
   frame: ScaleFrame,
   style: ScaleStyle,
@@ -51,7 +56,7 @@ export function renderScale(
   color: string | null,
 ): string {
   if (style === 'off') return '';
-  const useRings = style === 'rings' || frame.radialExponent !== 1;
+  const useRings = scaleUsesRings(style, frame.radialExponent);
   const ink = color ?? inkFor(background);
   const fontSize = Math.round(Math.min(frame.width, frame.height) / 75);
   // A halo in the background color keeps labels readable over dense routes.

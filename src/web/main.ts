@@ -3,6 +3,7 @@ import type { ActivityType } from '../core/types';
 import type { DateFormat, LegendBackdrop, LegendFont, LegendPosition } from '../render/legend';
 import { inkFor, type ScaleStyle, type Units } from '../render/scale';
 import { canvasSize, type Aspect, type Orientation } from '../render/canvas';
+import { PRESETS, type Preset } from '../render/presets';
 import { DEFAULT_STYLE, type Blend } from '../render/svg';
 import type { EngineMessage, EngineRequest } from './worker';
 // Inlined so the page also works as a single file opened straight from disk.
@@ -56,6 +57,7 @@ function readSettings() {
       strokeWidth: Number(input('stroke').value),
       opacity: Number(input('opacity').value),
       smoothing: Number(input('smooth').value),
+      textBand: input('textBand').checked,
       pencil:
         $<HTMLSelectElement>('lineStyle').value === 'pencil'
           ? { roughness: Number(input('roughness').value), grain: Number(input('grain').value) }
@@ -69,6 +71,7 @@ function readSettings() {
         title: input('legendTitle').value,
         name: input('legendName').value,
         showDates: input('legendDates').checked,
+        showStats: input('legendStats').checked,
         dateFormat: $<HTMLSelectElement>('legendDateFormat').value as DateFormat,
         position: $<HTMLSelectElement>('legendPosition').value as LegendPosition,
         font: $<HTMLSelectElement>('legendFont').value as LegendFont,
@@ -294,6 +297,106 @@ $('downloadPng').addEventListener('click', async () => {
   URL.revokeObjectURL(img.src);
   canvas.toBlob((blob) => blob && download(blob, 'stridemap.png'), 'image/png');
 });
+
+// ── Style presets ───────────────────────────────────────────────────────────
+
+const presetCards = $('presetCards');
+let activePreset: string | null = null;
+
+/** A tiny radiating web in the preset's colors, standing in for a thumbnail. */
+function presetThumb(p: Preset): string {
+  const spokes = [
+    [30, 6], [52, 14], [56, 36], [50, 62], [34, 74], [12, 64], [6, 40], [10, 16],
+    [42, 4], [58, 50], [22, 76], [4, 26],
+  ];
+  const line = (x: number, y: number, color: string, width: number, opacity: number) =>
+    `<path d="M30 40L${x} ${y}" stroke="${color}" stroke-width="${width}" stroke-opacity="${opacity}"/>`;
+  const outer = spokes.map(([x, y]) => line(x!, y!, p.style.colorA, 1, 0.9)).join('');
+  const inner = spokes.slice(0, 8).map(([x, y]) => line(30 + (x! - 30) * 0.45, 40 + (y! - 40) * 0.45, p.style.colorB, 2, 1)).join('');
+  const text = p.legend.position.startsWith('top') ? 8 : 70;
+  const tx = p.legend.position.endsWith('left') ? 8 : p.legend.position.endsWith('right') ? 32 : 20;
+  const ink = inkFor(p.style.background);
+  return `<svg viewBox="0 0 60 80" aria-hidden="true"><rect width="60" height="80" fill="${p.style.background}"/>
+<g fill="none" stroke-linecap="round"${p.style.pencil ? ' stroke-dasharray="3 1"' : ''}>${outer}${inner}</g>
+<rect x="${tx}" y="${text}" width="20" height="3" fill="${ink}" opacity="0.8"/></svg>`;
+}
+
+function markPreset(id: string | null) {
+  activePreset = id;
+  for (const card of presetCards.children) card.setAttribute('aria-checked', String(card.getAttribute('data-id') === id));
+  const p = PRESETS.find((x) => x.id === id);
+  $('presetNote').textContent = p ? p.description : 'Custom style. Pick a style to start over.';
+}
+
+/**
+ * Sets every look control to the preset's values. Filters, title and name
+ * text, and units are the person's own and are left alone, except that an
+ * empty title gets a default so the poster reads as finished.
+ */
+function applyPreset(p: Preset) {
+  const set = (id: string, value: string) => (input(id).value = value);
+  const radio = (group: string, value: string) =>
+    (document.querySelector<HTMLInputElement>(`#${group} input[value="${value}"]`)!.checked = true);
+
+  radio('mode', p.colorMode);
+  radio('orientation', p.orientation);
+  $<HTMLSelectElement>('aspect').value = p.aspect;
+  set('squash', String(p.squash));
+  set('background', p.style.background);
+  set('colorA', p.style.colorA);
+  set('colorB', p.style.colorB);
+  $<HTMLSelectElement>('blend').value = p.style.blend;
+  set('stroke', String(p.style.strokeWidth));
+  set('opacity', String(p.style.opacity));
+  set('smooth', String(p.style.smoothing));
+  $<HTMLSelectElement>('lineStyle').value = p.style.pencil ? 'pencil' : 'clean';
+  if (p.style.pencil) {
+    set('roughness', String(p.style.pencil.roughness));
+    set('grain', String(p.style.pencil.grain));
+  }
+  $<HTMLSelectElement>('scale').value = p.style.scale;
+  scaleColor.chosen = false;
+
+  input('legendShow').checked = true;
+  if (!input('legendTitle').value.trim()) set('legendTitle', 'Every Step');
+  input('legendDates').checked = p.legend.showDates;
+  input('legendStats').checked = p.legend.showStats;
+  $<HTMLSelectElement>('legendDateFormat').value = p.legend.dateFormat;
+  $<HTMLSelectElement>('legendPosition').value = p.legend.position;
+  $<HTMLSelectElement>('legendFont').value = p.legend.font;
+  $<HTMLSelectElement>('legendBackdrop').value = p.legend.backdrop;
+  set('legendSize', String(p.legend.size));
+  input('legendCaps').checked = p.legend.uppercaseTitle;
+  input('textBand').checked = p.style.textBand;
+  legendColor.chosen = false;
+
+  markPreset(p.id);
+  render();
+}
+
+for (const p of PRESETS) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'preset-card';
+  card.dataset.id = p.id;
+  card.setAttribute('role', 'radio');
+  card.title = p.description;
+  card.innerHTML = `${presetThumb(p)}<span>${p.name}</span>`;
+  card.addEventListener('click', () => applyPreset(p));
+  presetCards.append(card);
+}
+
+// Any manual change to a look control turns the style into a custom one.
+// (Setting values from code doesn't fire input events, so presets don't trip this.)
+$('controls').addEventListener('input', (e) => {
+  const target = e.target as HTMLElement;
+  if (activePreset && !target.closest('#presetCards') && !target.closest('#types') && !['from', 'to', 'legendTitle', 'legendName', 'units', 'file'].includes(target.id)) {
+    markPreset(null);
+  }
+});
+
+// The page opens on a finished poster style.
+applyPreset(PRESETS.find((p) => p.id === 'afterglow')!);
 
 updateOutputs();
 // ?sample opens straight into the demo data, which makes the page easy to link to.
