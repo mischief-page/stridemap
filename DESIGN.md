@@ -105,6 +105,11 @@ A person's history can be thousands of workouts and millions of GPS points, so:
 
 With 1,500 workouts (4.3 M points), a settings change takes about 0.4–0.9 s to redraw, and the page's main thread is never blocked for more than 50 ms.
 
+## Code structure
+- **One settings record.** `src/render/settings.ts` defines `EditorState`, every setting a person can change, as one flat record. The page's controls, the presets and the CLI all read and write it, and `toRenderRequest` turns it into the pipeline's filters and layout and the renderer's style. A preset is a complete `Look` (the subset of settings that make up a look). The page binds each setting to the control with the same id in one table (`src/web/controls.ts`).
+- **Engine worker.** The page sends settings to a worker that holds the prepared workouts and returns SVG. The worker reads an export by asking the page for byte ranges: Safari won't let a worker read a file (or Blobs) on a page opened from disk, but the page itself can.
+- **Tests.** Unit tests (Vitest) cover parsing, the pipeline and rendering; browser tests (Playwright, Chrome and WebKit) drive the built single-file page, including importing a generated fake export.
+
 ## Privacy
 - Everything runs locally: in the browser (parsing happens in a Web Worker) or in the CLI. Nothing is uploaded.
 - Anchoring discards absolute location. The output contains only positions relative to each workout's start, scaled to the canvas, so it can't be used to recover coordinates such as a home address. (A distinctive route shape could still be recognisable to someone who knows the area.)

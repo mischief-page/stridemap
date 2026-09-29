@@ -43,7 +43,7 @@
             <label>From <input type="date" id="from" /></label>
             <label>To <input type="date" id="to" /></label>
           </div>
-          <div class="row presets" id="presets">
+          <div class="row date-ranges" id="dateRanges">
             <button type="button" data-range="all">All time</button>
             <button type="button" data-range="12m">Last 12 months</button>
             <button type="button" data-range="this">This year</button>
@@ -53,9 +53,9 @@
 
         <section>
           <h2>Color</h2>
-          <fieldset class="row" id="mode">
-            <label><input type="radio" name="mode" value="pace" checked /> Pace</label>
-            <label><input type="radio" name="mode" value="frequency" /> How often</label>
+          <fieldset class="row" id="colorMode">
+            <label><input type="radio" name="colorMode" value="pace" checked /> Pace</label>
+            <label><input type="radio" name="colorMode" value="frequency" /> How often</label>
           </fieldset>
           <div class="row">
             <label>Slow / rare <input type="color" id="colorA" /></label>
@@ -98,8 +98,8 @@
             <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" />
             <small>1 is true scale. Lower pulls long routes inward, keeping their direction.</small>
           </label>
-          <label>Smoothing <output id="smoothOut"></output>
-            <input type="range" id="smooth" min="0" max="40" step="1" value="0" />
+          <label>Smoothing <output id="smoothingOut"></output>
+            <input type="range" id="smoothing" min="0" max="40" step="1" value="0" />
             <small>0 draws routes as recorded. Higher rounds corners into flowing curves. Heavy smoothing cuts corners, so routes get a little shorter than the scale says.</small>
           </label>
           <label>Line style
@@ -115,11 +115,10 @@
             <label>Grain <output id="grainOut"></output>
               <input type="range" id="grain" min="0" max="1" step="0.05" value="0.5" />
             </label>
-            <button type="button" id="paperPreset" class="small">Paper &amp; graphite look</button>
             <small>Pencil lines are traced twice with a hand-drawn wobble, then given graphite grain. Files are about 4× larger.</small>
           </fieldset>
-          <label>Line width <output id="strokeOut"></output>
-            <input type="range" id="stroke" min="0.3" max="4" step="0.1" />
+          <label>Line width <output id="strokeWidthOut"></output>
+            <input type="range" id="strokeWidth" min="0.3" max="4" step="0.1" />
           </label>
           <label>Opacity <output id="opacityOut"></output>
             <input type="range" id="opacity" min="0.1" max="1" step="0.05" />
@@ -148,13 +147,13 @@
           <h2>Legend</h2>
           <label class="inline"><input type="checkbox" id="legendShow" /> Show a legend</label>
           <fieldset id="legendFields" disabled>
-            <label>Title <input type="text" id="legendTitle" placeholder="e.g. Two years of running" /></label>
-            <label>Name <input type="text" id="legendName" placeholder="Your name" /></label>
+            <label>Title <input type="text" id="title" placeholder="e.g. Two years of running" /></label>
+            <label>Name <input type="text" id="name" placeholder="Your name" /></label>
             <div class="row">
-              <label><input type="checkbox" id="legendStats" /> Totals</label>
-              <label><input type="checkbox" id="legendDates" checked /> Dates shown</label>
+              <label><input type="checkbox" id="showStats" /> Totals</label>
+              <label><input type="checkbox" id="showDates" checked /> Dates shown</label>
               <label>
-                <select id="legendDateFormat" aria-label="Date format">
+                <select id="dateFormat" aria-label="Date format">
                   <option value="month">Jan 2024 – Aug 2025</option>
                   <option value="day">Jan 3, 2024 – Aug 5, 2025</option>
                   <option value="year">2024 – 2025</option>

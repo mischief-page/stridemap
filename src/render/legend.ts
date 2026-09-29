@@ -10,15 +10,6 @@ export type LegendPosition =
   | 'bottom-center'
   | 'bottom-right';
 
-export const LEGEND_POSITIONS: LegendPosition[] = [
-  'top-left',
-  'top-center',
-  'top-right',
-  'bottom-left',
-  'bottom-center',
-  'bottom-right',
-];
-
 /** System font stacks only, so the page keeps working offline and from file://. */
 export const LEGEND_FONTS = {
   sans: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",

@@ -83,7 +83,7 @@ export function prepareWorkouts(workouts: Workout[]): PreparedWorkout[] {
   return out;
 }
 
-export function filterWorkouts(workouts: PreparedWorkout[], filters: Filters): PreparedWorkout[] {
+function filterWorkouts(workouts: PreparedWorkout[], filters: Filters): PreparedWorkout[] {
   return workouts.filter(
     (w) =>
       filters.types.includes(w.type) &&

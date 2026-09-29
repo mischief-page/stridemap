@@ -142,7 +142,7 @@ button {
   cursor: pointer;
 }
 
-.presets { margin-top: 6px; gap: 6px; }
+.date-ranges { margin-top: 6px; gap: 6px; }
 
 .presets-grid {
   display: grid;
@@ -166,7 +166,7 @@ button {
 
 .preset-card svg { width: 100%; height: auto; display: block; border-radius: 3px; }
 .preset-card[aria-checked='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.presets button, button.small { padding: 4px 8px; font-size: 0.8rem; }
+.date-ranges button, button.small { padding: 4px 8px; font-size: 0.8rem; }
 
 button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: default; }
