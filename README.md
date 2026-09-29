@@ -66,6 +66,17 @@ npm run deploy       # builds and publishes
 
 Configuration is in `wrangler.jsonc`; security headers are in `public/_headers`.
 
+## Print proofs (Prodigi)
+
+Settings live in `.env.local` (never committed): `PRODIGI_API_KEY`, `PRODIGI_API_URL`, `R2_BUCKET`, `R2_PUBLIC_URL`, and the recipient (`PRINT_TO_NAME`, `PRINT_TO_LINE1`, `PRINT_TO_CITY`, `PRINT_TO_STATE`, `PRINT_TO_ZIP`, optional `PRINT_TO_EMAIL`, `PRINT_TO_LINE2`).
+
+```sh
+npm run print-file -- --preset ember --sku GLOBAL-FAP-18X24     # 300 DPI print file in out/print/
+npm run print-order -- --file out/print/ember-GLOBAL-FAP-18X24.png --sku GLOBAL-FAP-18X24
+```
+
+With a live key, `print-order` shows the price and stops unless given `--confirm-live`: live orders are charged and shipped.
+
 ## How it works
 
 See [DESIGN.md](DESIGN.md) for the rules and the pipeline.
