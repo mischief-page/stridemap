@@ -28,12 +28,6 @@
         </section>
 
         <details class="group">
-          <summary>Style <span class="hint" id="styleHint"></span></summary>
-          <div class="presets-grid" id="presetCards" role="radiogroup" aria-label="Poster style"></div>
-          <small id="presetNote">Pick a style to start from, then change anything below.</small>
-        </details>
-
-        <details class="group">
           <summary>Workouts</summary>
           <fieldset class="row" id="types">
             <label><input type="checkbox" value="running" checked /> Runs</label>
@@ -50,6 +44,41 @@
             <button type="button" data-range="this">This year</button>
             <button type="button" data-range="last">Last year</button>
           </div>
+        </details>
+
+        <details class="group">
+          <summary>Style <span class="hint" id="styleHint"></span></summary>
+          <div class="presets-grid" id="presetCards" role="radiogroup" aria-label="Poster style"></div>
+          <small id="presetNote">Pick a style to start from, then change anything below.</small>
+        </details>
+
+        <details class="group">
+          <summary>Poster</summary>
+          <div class="row">
+            <label>Print
+              <select id="aspect">
+                <option value="3:2">3:2 (12×18, 24×36 in)</option>
+                <option value="4:3">4:3 (18×24 in)</option>
+                <option value="5:4">5:4 (8×10, 16×20 in)</option>
+                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
+                <option value="iso">A4 / A3 / A2</option>
+                <option value="16:9">16:9 (screen)</option>
+                <option value="1:1">Square</option>
+              </select>
+            </label>
+            <fieldset class="row" id="orientation">
+              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
+              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
+            </fieldset>
+          </div>
+          <label>Fit <output id="fitOut"></output>
+            <input type="range" id="fit" min="50" max="100" step="1" value="95" />
+            <small>Share of workouts that must fit on the canvas. The rest run off the edge.</small>
+          </label>
+          <label>Squash long routes <output id="squashOut"></output>
+            <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" />
+            <small>1 is true scale. Lower pulls long routes inward, keeping their direction.</small>
+          </label>
         </details>
 
         <details class="group">
@@ -99,57 +128,6 @@
           <label>Opacity <output id="opacityOut"></output>
             <input type="range" id="opacity" min="0.1" max="1" step="0.05" />
           </label>
-        </details>
-
-        <details class="group">
-          <summary>Poster</summary>
-          <div class="row">
-            <label>Print
-              <select id="aspect">
-                <option value="3:2">3:2 (12×18, 24×36 in)</option>
-                <option value="4:3">4:3 (18×24 in)</option>
-                <option value="5:4">5:4 (8×10, 16×20 in)</option>
-                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
-                <option value="iso">A4 / A3 / A2</option>
-                <option value="16:9">16:9 (screen)</option>
-                <option value="1:1">Square</option>
-              </select>
-            </label>
-            <fieldset class="row" id="orientation">
-              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
-              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
-            </fieldset>
-          </div>
-          <label>Fit <output id="fitOut"></output>
-            <input type="range" id="fit" min="50" max="100" step="1" value="95" />
-            <small>Share of workouts that must fit on the canvas. The rest run off the edge.</small>
-          </label>
-          <label>Squash long routes <output id="squashOut"></output>
-            <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" />
-            <small>1 is true scale. Lower pulls long routes inward, keeping their direction.</small>
-          </label>
-        </details>
-
-        <details class="group">
-          <summary>Scale</summary>
-          <div class="row">
-            <label>Scale
-              <select id="scale">
-                <option value="bar">Bar</option>
-                <option value="rings">Distance rings</option>
-                <option value="off">None</option>
-              </select>
-            </label>
-            <label>Units
-              <select id="units">
-                <option value="km">km</option>
-                <option value="mi">miles</option>
-              </select>
-            </label>
-            <label>Color <input type="color" id="scaleColor" /></label>
-            <button type="button" id="scaleColorAuto" class="small" hidden>Auto</button>
-          </div>
-          <small>When long routes are squashed, the scale is drawn as rings, since a bar can't be accurate.</small>
         </details>
 
         <details class="group">
@@ -206,6 +184,28 @@
               <button type="button" id="legendColorAuto" class="small" hidden>Auto</button>
             </div>
           </fieldset>
+        </details>
+
+        <details class="group">
+          <summary>Scale</summary>
+          <div class="row">
+            <label>Scale
+              <select id="scale">
+                <option value="bar">Bar</option>
+                <option value="rings">Distance rings</option>
+                <option value="off">None</option>
+              </select>
+            </label>
+            <label>Units
+              <select id="units">
+                <option value="km">km</option>
+                <option value="mi">miles</option>
+              </select>
+            </label>
+            <label>Color <input type="color" id="scaleColor" /></label>
+            <button type="button" id="scaleColorAuto" class="small" hidden>Auto</button>
+          </div>
+          <small>When long routes are squashed, the scale is drawn as rings, since a bar can't be accurate.</small>
         </details>
 
         <details class="group">
