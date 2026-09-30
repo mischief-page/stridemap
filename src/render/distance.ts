@@ -1,5 +1,6 @@
 import { formatHex, interpolate } from 'culori';
 import { round1 as r } from './format';
+import { inkFor, METERS_PER, niceRound, type Units } from './scale';
 
 /**
  * 'total': the running total over the span shown, always rising, "how far
@@ -12,6 +13,12 @@ export interface DistanceStyle {
   shape: DistanceShape;
   /** Overall strength, 0–1; the fill is fainter than its top edge. */
   strength: number;
+  /**
+   * Milestones: level lines cut through the fill as thin gaps, each with a
+   * tiny label ("500 mi" where the running total passes it; "50 mi/mo" for
+   * distance per month).
+   */
+  markers: boolean;
 }
 
 /** A workout on the timeline: start time (Unix ms) and GPS distance (m). */
@@ -26,6 +33,10 @@ interface AreaFrame {
   height: number;
   colorA: string;
   colorB: string;
+  background: string;
+  padding: number;
+  units: Units;
+  locale?: string;
 }
 
 /** How much of the art's height the highest point reaches. */
@@ -35,6 +46,7 @@ const DAY = 86_400_000;
 const MONTHLY_MIN_SPAN = 120 * DAY;
 
 const GRADIENT_ID = 'stridemap-distance';
+const CLIP_ID = 'stridemap-distance-area';
 
 /**
  * A quiet area chart of distance over time, across the full width of the art
@@ -76,10 +88,15 @@ export function renderDistance(timeline: TimelinePoint[], style: DistanceStyle, 
   // streets), so the chart starts partway along the scale to stay visible.
   const start = formatHex(interpolate([f.colorA, f.colorB], 'oklch')(0.4));
 
+  const yOf = (v: number) => bottom - (v / max) * f.height * PEAK;
+  const markers = style.markers ? renderMarkers(style, f, pts.map((p, i) => ({ x: xy[i]![0], v: p.v })), max, yOf, unit) : null;
+
   return `<g class="distance">
-<defs><linearGradient id="${GRADIENT_ID}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${start}"/><stop offset="1" stop-color="${f.colorB}"/></linearGradient></defs>
+<defs><linearGradient id="${GRADIENT_ID}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${start}"/><stop offset="1" stop-color="${f.colorB}"/></linearGradient>${markers ? `<clipPath id="${CLIP_ID}"><path d="${area}"/></clipPath>` : ''}</defs>
 <path d="${area}" fill="url(#${GRADIENT_ID})" fill-opacity="${r2(style.strength * 0.45)}"/>
+${markers ? markers.lines : ''}
 <path d="${edge}" fill="none" stroke="url(#${GRADIENT_ID})" stroke-opacity="${r2(Math.min(1, style.strength * 1.6))}" stroke-width="${r(1.5 * unit)}" stroke-linejoin="round"/>
+${markers ? markers.labels : ''}
 </g>`;
 }
 
@@ -123,4 +140,53 @@ function perPeriod(timeline: TimelinePoint[], monthly: boolean): { t: number; v:
     periods.push({ t: Math.min(t1, Math.max(t0, (s + next(s)) / 2)), v: sums.get(s) ?? 0 });
   }
   return [{ t: t0, v: periods[0]!.v }, ...periods, { t: t1, v: periods[periods.length - 1]!.v }];
+}
+
+/**
+ * Level lines at round distances (1, 2 or 5 × 10ⁿ apart, about five of
+ * them), drawn in the background color and clipped to the area so they read
+ * as gaps in the fill. For the running total each label sits just before the
+ * point where the total passes it, like a marker on the ridge; for distance
+ * per month the labels sit at the left.
+ */
+function renderMarkers(
+  style: DistanceStyle,
+  f: AreaFrame,
+  pts: { x: number; v: number }[],
+  max: number,
+  yOf: (v: number) => number,
+  unit: number,
+): { lines: string; labels: string } | null {
+  const perUnit = METERS_PER[f.units];
+  const step = niceRound(max / perUnit / 5) * perUnit;
+  const levels: number[] = [];
+  for (let v = step; v < max * 0.97; v += step) levels.push(v);
+  if (!levels.length) return null;
+
+  const n = new Intl.NumberFormat(f.locale);
+  const size = Math.min(f.width, f.height) / 130;
+  const gap = 5 * unit;
+  const lines: string[] = [];
+  const labels: string[] = [];
+  for (const v of levels) {
+    const y = yOf(v);
+    lines.push(`M0 ${r(y)}H${r(f.width)}`);
+    const amount = n.format(Math.round(v / perUnit));
+    if (style.shape === 'total') {
+      // Where the running total first reaches this level.
+      const i = pts.findIndex((p) => p.v >= v);
+      const a = pts[Math.max(0, i - 1)]!;
+      const b = pts[i]!;
+      const cross = b.v === a.v ? b.x : a.x + ((v - a.v) / (b.v - a.v)) * (b.x - a.x);
+      const text = `${amount} ${f.units}`;
+      const x = Math.max(cross - gap, f.padding + text.length * size * 0.55);
+      labels.push(`<text x="${r(x)}" y="${r(y + size * 0.35)}" text-anchor="end">${text}</text>`);
+    } else {
+      labels.push(`<text x="${r(f.padding)}" y="${r(y - gap / 2)}">${amount} ${f.units}/mo</text>`);
+    }
+  }
+  return {
+    lines: `<path d="${lines.join('')}" fill="none" stroke="${f.background}" stroke-width="${r(1.5 * unit)}" clip-path="url(#${CLIP_ID})"/>`,
+    labels: `<g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="${r(size)}" fill="${inkFor(f.background)}" fill-opacity="${r2(Math.min(0.6, 0.2 + style.strength))}" letter-spacing="0.3">${labels.join('')}</g>`,
+  };
 }

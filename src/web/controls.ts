@@ -25,6 +25,7 @@ const CONTROLS: { [K in keyof EditorState]: Kind } = {
   underlay: 'radio',
   underlayStrength: 'number',
   distanceShape: 'value',
+  distanceMarkers: 'checkbox',
   mapPlace: 'radio',
   mapAt: 'value',
   mapOthers: 'radio',

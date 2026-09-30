@@ -209,6 +209,9 @@ test('distance over time can go behind the routes', async ({ page }) => {
   await expect(page.locator('#mapAt')).toBeHidden();
   await settled(page);
   expect(await previewSvg(page)).toContain('class="distance"');
+  await page.check('#distanceMarkers');
+  await settled(page);
+  expect(await previewSvg(page)).toMatch(/<text[^>]*>[\d,]+ (mi|km)<\/text>/);
   await page.selectOption('#distanceShape', 'monthly');
   await settled(page);
   expect(await previewSvg(page)).toContain('class="distance"');

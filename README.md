@@ -59,7 +59,7 @@ Street map behind the routes (optional; for when most routes start from the same
 npm run cli -- ~/Downloads/export.zip --preset gallery --map --out out/map.svg
 ```
 
-Or a faint chart of distance over time behind the routes: `--distance total` (running total, climbing) or `--distance monthly` (distance per month). It takes the same `--background-strength`.
+Or a faint chart of distance over time behind the routes: `--distance total` (running total, climbing) or `--distance monthly` (distance per month). It takes the same `--background-strength`; add `--distance-markers` for milestone lines (500 mi, 1,000 mi…).
 
 ## Deploy
 

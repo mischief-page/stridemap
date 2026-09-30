@@ -185,7 +185,7 @@ export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFe
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
 <svg class="art" y="${r(artTop)}" width="${W}" height="${r(artH)}" viewBox="0 ${r(artTop)} ${W} ${r(artH)}">
-${style.distance ? renderDistance(scene.timeline, style.distance, { top: artTop, width: W, height: artH, colorA: style.colorA, colorB: style.colorB }) : ''}
+${style.distance ? renderDistance(scene.timeline, style.distance, { top: artTop, width: W, height: artH, colorA: style.colorA, colorB: style.colorB, background: style.background, padding: P, units: style.units, locale: style.legend.locale }) : ''}
 ${map ? renderMap(map.features, map.style, { scale, ox, oy, top: artTop, width: W, height: artH, background: style.background }) : ''}
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
 ${body}

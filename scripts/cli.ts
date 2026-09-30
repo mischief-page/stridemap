@@ -68,6 +68,7 @@ const FLAGS: Record<string, Flag> = {
   'map-at': { type: 'string', apply: (v, s) => void Object.assign(s, { underlay: 'map', mapPlace: 'custom', mapAt: v }) },
   distance: { type: 'string', apply: (v, s) => void Object.assign(s, { underlay: 'distance', distanceShape: v }) },
   'background-strength': num('underlayStrength'),
+  'distance-markers': bool('distanceMarkers'),
   'map-others': str('mapOthers'),
 };
 

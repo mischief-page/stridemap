@@ -46,6 +46,7 @@ export interface EditorState {
   /** Strength of the background, 0–1. */
   underlayStrength: number;
   distanceShape: DistanceShape;
+  distanceMarkers: boolean;
   /** 'detected': the most common start; 'custom': the point in mapAt. */
   mapPlace: 'detected' | 'custom';
   /** "lat, lon", as map apps copy it. */
@@ -108,6 +109,7 @@ export const DEFAULT_STATE: EditorState = {
   underlay: 'none',
   underlayStrength: DEFAULT_MAP_STYLE.opacity,
   distanceShape: 'total',
+  distanceMarkers: false,
   mapPlace: 'detected',
   mapAt: '',
   mapOthers: 'true',
@@ -174,7 +176,7 @@ export function toRenderRequest(
       textBand: s.textBand,
       mark: s.mark,
       map: s.underlay === 'map' ? { ...DEFAULT_MAP_STYLE, opacity: s.underlayStrength } : null,
-      distance: s.underlay === 'distance' ? { shape: s.distanceShape, strength: s.underlayStrength } : null,
+      distance: s.underlay === 'distance' ? { shape: s.distanceShape, strength: s.underlayStrength, markers: s.distanceMarkers } : null,
       legend: {
         show: s.legendShow,
         title: s.title,

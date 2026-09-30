@@ -10,7 +10,7 @@ export type Units = 'km' | 'mi';
  */
 export type ScaleStyle = 'bar' | 'rings' | 'off';
 
-const METERS_PER: Record<Units, number> = { km: 1000, mi: 1609.344 };
+export const METERS_PER: Record<Units, number> = { km: 1000, mi: 1609.344 };
 
 /** Frame the scale is drawn in: pixels per meter and the anchor's screen position. */
 export interface ScaleFrame {
