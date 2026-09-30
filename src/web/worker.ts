@@ -2,7 +2,7 @@
 import { Reader } from '@zip.js/zip.js';
 import { buildScene, prepareWorkouts, type Filters, type LayoutOptions, type OtherStarts, type PreparedWorkout, type Scene } from '../core/pipeline';
 import type { Workout } from '../core/types';
-import { readHealthExport, type Progress } from '../parse/health-export';
+import { readExport, type Progress } from '../parse/import';
 import { renderSvg, visibleMeters, type StyleOptions } from '../render/svg';
 import type { MapRequest } from '../render/settings';
 import { detectHome, type GeoPoint } from '../map/anchor';
@@ -97,7 +97,7 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
   const during = req.kind === 'render' ? 'render' : 'load';
   try {
     if (req.kind === 'load-file') {
-      loaded(await readHealthExport(new PageFileReader(req.size), (progress) => post({ kind: 'progress', progress })));
+      loaded(await readExport(new PageFileReader(req.size), (progress) => post({ kind: 'progress', progress })));
     } else if (req.kind === 'load-sample') {
       loaded(syntheticWorkouts());
     } else {

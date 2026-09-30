@@ -33,6 +33,7 @@
     "saxes": "^6.0.0"
   },
   "devDependencies": {
+    "@garmin/fitsdk": "^21.217.0",
     "@playwright/test": "^1.63.0",
     "@resvg/resvg-js": "^2.6.2",
     "@types/culori": "^4.0.1",

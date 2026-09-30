@@ -9,7 +9,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
-import { readHealthExport } from '../src/parse/health-export';
+import { readExport } from '../src/parse/import';
 import { renderPrintPng } from '../src/print/render';
 import { DEFAULT_TITLE, findPreset } from '../src/render/presets';
 import { DEFAULT_STATE, toRenderRequest } from '../src/render/settings';
@@ -31,7 +31,7 @@ const preset = findPreset(values.preset!);
 if (!preset) throw new Error(`Unknown preset ${values.preset}`);
 const size = await printSize(values.sku!);
 
-const workouts = positionals[0] ? await readHealthExport(await openAsBlob(positionals[0])) : syntheticWorkouts();
+const workouts = positionals[0] ? await readExport(await openAsBlob(positionals[0])) : syntheticWorkouts();
 const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, ...preset.look, title: values.title!, mark: false });
 // The canvas must have the product's shape; its size in pixels is set by the print render.
 const svg = renderSvg(buildScene(prepareWorkouts(workouts), filters, layout), {

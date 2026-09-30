@@ -291,3 +291,7 @@ label small { display: inline; }
 
 /* Element display rules (label, .row…) would otherwise override the hidden attribute. */
 [hidden] { display: none !important; }
+
+.howto { margin: 8px 0; font-size: 0.8rem; color: var(--muted); }
+.howto summary { cursor: pointer; }
+.howto p { margin: 6px 0; }

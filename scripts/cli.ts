@@ -14,7 +14,7 @@ import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import type { ActivityType } from '../src/core/types';
-import { readHealthExport } from '../src/parse/health-export';
+import { readExport } from '../src/parse/import';
 import { findPreset, PRESETS } from '../src/render/presets';
 import { DEFAULT_STATE, toRenderRequest, type EditorState } from '../src/render/settings';
 import { renderSvg, visibleMeters } from '../src/render/svg';
@@ -105,7 +105,7 @@ if (!preset) state.legendShow = Boolean(state.title || state.name || given.showD
 
 const workouts = values.sample
   ? syntheticWorkouts()
-  : await readHealthExport(await openAsBlob(zipPath!), (p) => {
+  : await readExport(await openAsBlob(zipPath!), (p) => {
       process.stderr.write(`\r${p.stage}: ${Math.round((p.done / p.total) * 100)}%   `);
     });
 process.stderr.write('\n');

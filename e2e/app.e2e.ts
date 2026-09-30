@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { resolve } from 'node:path';
-import { SAMPLE_EXPORT } from './global-setup';
+import { SAMPLE_EXPORT, SAMPLE_STRAVA } from './global-setup';
 import { makeTile } from '../test/mvt';
 
 const PAGE = `file://${resolve('dist-single/stridemap.html')}`;
@@ -218,4 +218,12 @@ test('distance over time can go behind the routes', async ({ page }) => {
   await page.check('#underlay input[value="none"]');
   await settled(page);
   expect(await previewSvg(page)).not.toContain('class="distance"');
+});
+
+test('reads a Strava download (FIT, GPX and TCX tracks) from a file', async ({ page }) => {
+  await visit(page, PAGE);
+  await page.setInputFiles('#file', SAMPLE_STRAVA);
+  await expect(page.locator('#status')).toContainText('20 of 20', { timeout: 30_000 });
+  await settled(page);
+  expect(await previewSvg(page)).toContain('<path');
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ExportXmlParser, parseHealthDate } from '../src/parse/export-xml';
 import { parseGpx } from '../src/parse/gpx';
-import { readHealthExport } from '../src/parse/health-export';
+import { readExport } from '../src/parse/import';
 import { buildExportZip, EXPORT_XML, ROUTE_GPX } from './fixtures';
 
 describe('parseHealthDate', () => {
@@ -42,9 +42,9 @@ describe('parseGpx', () => {
   });
 });
 
-describe('readHealthExport', () => {
+describe('readExport', () => {
   it('reads workouts and their routes from the zip', async () => {
-    const workouts = await readHealthExport(await buildExportZip());
+    const workouts = await readExport(await buildExportZip());
     expect(workouts.map((w) => w.type)).toEqual(['running', 'walking', 'running']);
     expect(workouts[0]!.track?.t.length).toBe(3);
     expect(workouts[1]!.track).toBeNull();

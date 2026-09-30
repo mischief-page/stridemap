@@ -1,6 +1,6 @@
 # stridemap
 
-Turn your Apple Health walks and runs into a shareable piece of art.
+Turn your Apple Health or Strava walks and runs into a shareable piece of art.
 
 Every route starts from the same point and heads off in the direction you actually went, so years of workouts form a color-graded spider web. Color shows either your **pace** along each route, or **how often** you've been down each street.
 
@@ -8,8 +8,10 @@ Your data never leaves your device. The export is read in your browser (or on yo
 
 ## Use it
 
-1. On your iPhone, open **Health**, tap your profile picture, then **Export All Health Data**. This makes `export.zip` (it can take a few minutes).
-2. Run the web app (below) and drop `export.zip` onto the page.
+1. Get your data as a zip:
+   - **Apple Health:** on your iPhone, open **Health**, tap your profile picture, then **Export All Health Data**. This makes `export.zip` (it can take a few minutes).
+   - **Strava:** on strava.com, open **Settings → My Account → Download or Delete Your Account → Get Started**, then **Request Your Archive**. Strava emails you a link to the zip.
+2. Run the web app (below) and drop the zip onto the page, as it is.
 3. Pick colors and filters, then download an SVG or PNG.
 
 No iPhone export handy? Click **Try with sample data**, or open the page with `?sample`.
@@ -34,6 +36,7 @@ npm test             # unit tests
 npm run test:e2e     # browser tests (Chrome + WebKit) against the built single-file page
 npm run typecheck
 npm run sample-export -- out/sample-export.zip 60   # a fake Health export for trying the import
+npx tsx scripts/make-sample-strava.ts out/strava-export.zip 30   # a fake Strava download
 ```
 
 Render from the command line:
@@ -92,7 +95,7 @@ See [DESIGN.md](DESIGN.md) for the rules and the pipeline.
 
 ```
 src/
-  parse/    export.zip → workouts with GPS tracks (streaming, works in a Web Worker)
+  parse/    Apple Health or Strava zip → workouts with GPS tracks (streaming, works in a Web Worker); FIT, GPX, TCX, CSV readers
   map/      optional street map: most common start, map tiles, address search
   core/     cleaning, pace, real-world frequency heat, anchoring and fitting
   render/   scene → SVG; settings.ts (every setting, shared by page and CLI); presets.ts

@@ -1,4 +1,4 @@
-import { BlobReader, Uint8ArrayWriter, ZipReader, type FileEntry, type Reader } from '@zip.js/zip.js';
+import { Uint8ArrayWriter, type FileEntry } from '@zip.js/zip.js';
 import type { Workout } from '../core/types';
 import { ExportXmlParser } from './export-xml';
 import { parseGpx } from './gpx';
@@ -12,59 +12,50 @@ export type Progress =
  * returns every walk, run and hike with its GPS track. The zip and the large
  * export.xml inside it are streamed, never loaded whole.
  */
-export async function readHealthExport(
-  zip: Blob | Reader<unknown>,
-  onProgress?: (p: Progress) => void,
-): Promise<Workout[]> {
-  const reader = new ZipReader(zip instanceof Blob ? new BlobReader(zip) : zip, { useWebWorkers: false });
-  try {
-    const files = (await reader.getEntries()).filter((e): e is FileEntry => !e.directory);
-    const xmlEntry = findExportXml(files);
-    if (!xmlEntry) throw new Error('No export.xml found. Is this an Apple Health export zip?');
+export async function readHealthEntries(files: FileEntry[], onProgress?: (p: Progress) => void): Promise<Workout[]> {
+  const xmlEntry = findExportXml(files);
+  if (!xmlEntry) throw new Error('No export.xml or activities.csv found. Is this an Apple Health export or a Strava download?');
 
-    const parser = new ExportXmlParser();
-    const decoder = new TextDecoderStream();
-    const written = xmlEntry.getData(decoder.writable, {
-      onprogress: async (done, total) => onProgress?.({ stage: 'workouts', done, total }),
-    });
-    const text = decoder.readable.getReader();
-    for (;;) {
-      const { value, done } = await text.read();
-      if (done) break;
-      parser.write(value);
-    }
-    await written;
-    const entries = parser.close();
-
-    const routes = new Map(files.map((f) => [routeKey(f.filename), f]));
-    const utf8 = new TextDecoder();
-    const workouts: Workout[] = [];
-    let routesRead = 0;
-    const routeTotal = entries.filter((e) => e.routePath && !e.indoor).length;
-
-    for (const e of entries) {
-      let track = null;
-      if (e.routePath && !e.indoor) {
-        const file = routes.get(routeKey(e.routePath));
-        // Bytes plus TextDecoder rather than zip.js's TextWriter, which goes via a
-        // Blob: Safari won't let a worker read Blobs on a page opened from disk.
-        if (file) track = parseGpx(utf8.decode(await file.getData(new Uint8ArrayWriter())));
-        onProgress?.({ stage: 'routes', done: ++routesRead, total: routeTotal });
-      }
-      workouts.push({
-        id: `${e.type}-${e.start}`,
-        type: e.type,
-        start: e.start,
-        end: e.end,
-        distanceM: e.distanceM,
-        indoor: e.indoor,
-        track,
-      });
-    }
-    return workouts;
-  } finally {
-    await reader.close();
+  const parser = new ExportXmlParser();
+  const decoder = new TextDecoderStream();
+  const written = xmlEntry.getData(decoder.writable, {
+    onprogress: async (done, total) => onProgress?.({ stage: 'workouts', done, total }),
+  });
+  const text = decoder.readable.getReader();
+  for (;;) {
+    const { value, done } = await text.read();
+    if (done) break;
+    parser.write(value);
   }
+  await written;
+  const entries = parser.close();
+
+  const routes = new Map(files.map((f) => [routeKey(f.filename), f]));
+  const utf8 = new TextDecoder();
+  const workouts: Workout[] = [];
+  let routesRead = 0;
+  const routeTotal = entries.filter((e) => e.routePath && !e.indoor).length;
+
+  for (const e of entries) {
+    let track = null;
+    if (e.routePath && !e.indoor) {
+      const file = routes.get(routeKey(e.routePath));
+      // Bytes plus TextDecoder rather than zip.js's TextWriter, which goes via a
+      // Blob: Safari won't let a worker read Blobs on a page opened from disk.
+      if (file) track = parseGpx(utf8.decode(await file.getData(new Uint8ArrayWriter())));
+      onProgress?.({ stage: 'routes', done: ++routesRead, total: routeTotal });
+    }
+    workouts.push({
+      id: `${e.type}-${e.start}`,
+      type: e.type,
+      start: e.start,
+      end: e.end,
+      distanceM: e.distanceM,
+      indoor: e.indoor,
+      track,
+    });
+  }
+  return workouts;
 }
 
 /**

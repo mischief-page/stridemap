@@ -9,7 +9,10 @@ export.zip ─► parse ─► clean ─► color values ─► anchor ─► sq
              (src/parse)       (src/core)                               (src/render)
 ```
 
-1. **Parse** (`src/parse`): stream the Apple Health `export.zip`. The large `export.xml` is read with a streaming XML parser and never loaded whole. Only walking, running and hiking workouts are kept. Each workout's GPX route is read from `workout-routes/` with a small purpose-built scanner (route files are most of an export; this is ~3× faster than a general XML parser). Workouts are then prepared once into a compact form and the raw tracks are freed.
+1. **Parse** (`src/parse`): stream the zip and tell which kind it is by what's inside. Only walking, running and hiking workouts are kept, then prepared once into a compact form, and the raw tracks are freed.
+   - **Apple Health export** (has `export.xml`): the large `export.xml` is read with a streaming XML parser and never loaded whole. Each workout's GPX route is read from `workout-routes/` with a small purpose-built scanner (route files are most of an export; this is ~3× faster than a general XML parser).
+   - **Strava account download** (has `activities.csv`): the CSV lists each activity's type, date and track file. Types Run, Trail Run, Walk and Hike are kept; rides, swims, virtual runs and the rest are skipped without opening their files, and manual entries have no file. Tracks are FIT (most), GPX or TCX, usually gzipped (detected by content, since Strava's file names are sometimes wrong), and unzipped with the browser's own `DecompressionStream`. FIT is read by a small decoder of our own (`fit.ts`) that takes only time, position and speed from record messages and the sport from the session message, skipping everything else by size, including developer fields; it handles both byte orders, compressed timestamps and chained files. Garmin's FIT SDK is 1.4 MB and under its own license, so it's used only in tests, to build FIT files and check our decoder against its output. If the export is in another language (so activity types aren't recognised), the sport is read from each FIT file instead.
+   - Distance is always worked out from the track, so both sources are measured the same way.
 2. **Clean** (`src/core/clean.ts`): drop warm-up fixes at the start of a track until horizontal accuracy is 12 m or better, drop any fix worse than 30 m, and drop jumps faster than 12 m/s.
 3. **Color values** (`src/core/values.ts`): compute a value for every point (see Color below).
 4. **Anchor** (`src/core/layout.ts`): convert each track to meters east (x) and north (y) of its first point. Every workout starts at (0, 0), north is up and east is right, and a kilometer is the same length wherever in the world it was run.
@@ -139,6 +142,7 @@ With 1,500 workouts (4.3 M points), a settings change takes about 0.4–0.9 s to
 - Everything runs locally: in the browser (parsing happens in a Web Worker) or in the CLI. Nothing is uploaded.
 - Anchoring discards absolute location. The output contains only positions relative to each workout's start, scaled to the canvas, so it can't be used to recover coordinates such as a home address. (A distinctive route shape could still be recognisable to someone who knows the area.)
 - The optional street map is the exception, and the page and privacy page say so: an image with a map shows the real place routes start from. Loading tiles tells OpenFreeMap roughly which area is shown (to within a tile, a few km); an address is sent to Nominatim only when Find is pressed. Routes are never sent. The detected start point is worked out on the device.
+- A Strava download holds more than routes (profile, photos and more); only `activities.csv` and the walk, run and hike track files are read.
 - Real exports must never be committed. `.gitignore` excludes zips and export files, and tests use synthetic data only.
 
 ## Not yet decided / next
