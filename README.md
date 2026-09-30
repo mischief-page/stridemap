@@ -53,11 +53,13 @@ CLI options: `--aspect 3:2|4:3|5:4|7:5|iso|16:9|1:1` (default 3:2 landscape; add
 
 Legend options (the legend appears when any of the first three are given): `--title "…"`, `--name "…"`, `--dates`, `--date-format month|day|year`, `--legend-position top-left|top-center|top-right|bottom-left|bottom-center|bottom-right`, `--legend-font sans|serif|mono|rounded`, `--legend-size 0.5..2`, `--legend-caps`, `--legend-color`, `--legend-backdrop halo|panel|none`, `--no-mark` (leave off the small "made with stridemap" mark), `--stats` (a totals line such as "412 runs · 2,318 mi"), `--text-band` (keep the legend in its own band so routes never run under it).
 
-Street map behind the routes (optional; for when most routes start from the same place): `--map` centres it where most routes start, `--map-at "41.8781, -87.6298"` on a point, or `--map-address "…"` on an address (looked up with OpenStreetMap's Nominatim, the only step that sends anything off your machine). `--map-opacity 0.05..0.8`, `--map-others true|anchored|omit` (routes starting elsewhere: where they really went, the default; from the map's point; or left out). Map tiles come from [OpenFreeMap](https://openfreemap.org).
+Street map behind the routes (optional; for when most routes start from the same place): `--map` centres it where most routes start, `--map-at "41.8781, -87.6298"` on a point, or `--map-address "…"` on an address (looked up with OpenStreetMap's Nominatim, the only step that sends anything off your machine). `--background-strength 0.05..0.8`, `--map-others true|anchored|omit` (routes starting elsewhere: where they really went, the default; from the map's point; or left out). Map tiles come from [OpenFreeMap](https://openfreemap.org).
 
 ```sh
 npm run cli -- ~/Downloads/export.zip --preset gallery --map --out out/map.svg
 ```
+
+Or a faint chart of distance over time behind the routes: `--distance total` (running total, climbing) or `--distance monthly` (distance per month). It takes the same `--background-strength`.
 
 ## Deploy
 

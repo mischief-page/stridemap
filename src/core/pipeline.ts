@@ -64,6 +64,8 @@ export interface Scene {
   dateRange: [number, number] | null;
   /** Total GPS distance of the workouts drawn, in meters. */
   totalDistanceM: number;
+  /** Each workout drawn, by start time, for the distance-over-time background. */
+  timeline: { t: number; m: number }[];
   /** Which activity types are drawn, for wording like "412 runs". */
   activityTypes: ActivityType[];
   /**
@@ -190,6 +192,7 @@ export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: 
     radialExponent,
     workoutCount: tracks.length,
     totalDistanceM: selected.reduce((sum, w) => sum + w.distanceM, 0),
+    timeline: selected.map((w) => ({ t: w.start, m: w.distanceM })).sort((a, b) => a.t - b.t),
     activityTypes: [...new Set(selected.map((w) => w.type))],
     dateRange: selected.length ? [first, last] : null,
     geoAnchor: geo

@@ -209,10 +209,14 @@
         </details>
 
         <details class="group">
-          <summary>Map <span class="hint">optional</span></summary>
-          <label class="inline"><input type="checkbox" id="mapShow" /> Draw a street map behind the routes</label>
-          <fieldset id="mapFields" disabled>
-            <small>For when most routes start from the same place. Routes starting there are drawn where they really went, so they follow the streets on the map.</small>
+          <summary>Background <span class="hint">optional</span></summary>
+          <fieldset id="underlay">
+            <label><input type="radio" name="underlay" value="none" checked /> None</label>
+            <label><input type="radio" name="underlay" value="map" /> Street map</label>
+            <label><input type="radio" name="underlay" value="distance" /> Distance over time</label>
+          </fieldset>
+          <fieldset id="mapFields" hidden>
+            <small>A street map, for when most routes start from the same place. Routes starting there are drawn where they really went, so they follow the streets on the map.</small>
             <fieldset id="mapPlace">
               <label><input type="radio" name="mapPlace" value="detected" checked /> Where most routes start</label>
               <label><input type="radio" name="mapPlace" value="custom" /> A place I choose</label>
@@ -231,12 +235,21 @@
               <label><input type="radio" name="mapOthers" value="anchored" /> From the map's point <small>(won't match the streets)</small></label>
               <label><input type="radio" name="mapOthers" value="omit" /> Leave out</label>
             </fieldset>
-            <label>Map strength <output id="mapOpacityOut"></output>
-              <input type="range" id="mapOpacity" min="0.05" max="0.8" step="0.05" value="0.25" />
-            </label>
             <p id="mapStatus" role="status"></p>
             <small>Map tiles come from <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> (© OpenMapTiles, data © OpenStreetMap contributors). Loading them tells OpenFreeMap roughly which area you're looking at, to within a few km; your routes stay on your device. Squash is off while the map is shown.</small>
           </fieldset>
+          <fieldset id="distanceFields" hidden>
+            <small>A faint chart of the distance you covered over the dates shown, rising from the bottom, in your two colors.</small>
+            <label>Show
+              <select id="distanceShape">
+                <option value="total">Running total (climbs over time)</option>
+                <option value="monthly">Distance per month (peaks and valleys)</option>
+              </select>
+            </label>
+          </fieldset>
+          <label id="underlayStrengthField" hidden>Strength <output id="underlayStrengthOut"></output>
+            <input type="range" id="underlayStrength" min="0.05" max="0.8" step="0.05" value="0.25" />
+          </label>
         </details>
 
         <section>

@@ -64,9 +64,10 @@ const FLAGS: Record<string, Flag> = {
   'legend-caps': bool('legendCaps'),
   'legend-color': str('legendColor'),
   'legend-backdrop': str('legendBackdrop'),
-  map: bool('mapShow'),
-  'map-at': { type: 'string', apply: (v, s) => void Object.assign(s, { mapShow: true, mapPlace: 'custom', mapAt: v }) },
-  'map-opacity': num('mapOpacity'),
+  map: { type: 'boolean', apply: (v, s) => void (v && (s.underlay = 'map')) },
+  'map-at': { type: 'string', apply: (v, s) => void Object.assign(s, { underlay: 'map', mapPlace: 'custom', mapAt: v }) },
+  distance: { type: 'string', apply: (v, s) => void Object.assign(s, { underlay: 'distance', distanceShape: v }) },
+  'background-strength': num('underlayStrength'),
   'map-others': str('mapOthers'),
 };
 
@@ -116,7 +117,7 @@ if (values['map-address']) {
     process.exit(1);
   }
   console.log(`Map at ${hit.label}`);
-  Object.assign(state, { mapShow: true, mapPlace: 'custom', mapAt: `${hit.lat}, ${hit.lon}` });
+  Object.assign(state, { underlay: 'map', mapPlace: 'custom', mapAt: `${hit.lat}, ${hit.lon}` });
 }
 
 const prepared = prepareWorkouts(workouts);

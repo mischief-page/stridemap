@@ -125,9 +125,9 @@ describe('map settings and drawing', () => {
   it('asks for the map only when it is on', () => {
     expect(toRenderRequest(DEFAULT_STATE).map).toBeNull();
     expect(toRenderRequest(DEFAULT_STATE).style.map).toBeNull();
-    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true }).map).toEqual({ at: 'detected', others: 'true' });
-    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mapPlace: 'custom', mapAt: '1, 2' }).map).toEqual({ at: { lat: 1, lon: 2 }, others: 'true' });
-    expect(toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mapPlace: 'custom', mapAt: 'x' }).map).toEqual({ at: null, others: 'true' });
+    expect(toRenderRequest({ ...DEFAULT_STATE, underlay: 'map' as const }).map).toEqual({ at: 'detected', others: 'true' });
+    expect(toRenderRequest({ ...DEFAULT_STATE, underlay: 'map' as const, mapPlace: 'custom', mapAt: '1, 2' }).map).toEqual({ at: { lat: 1, lon: 2 }, others: 'true' });
+    expect(toRenderRequest({ ...DEFAULT_STATE, underlay: 'map' as const, mapPlace: 'custom', mapAt: 'x' }).map).toEqual({ at: null, others: 'true' });
   });
 
   const geo = (others: 'omit' | 'true' | 'anchored') => ({ lat: home.lat, lon: home.lon, radiusM: 300, others });
@@ -151,7 +151,7 @@ describe('map settings and drawing', () => {
   });
 
   it('draws routes from elsewhere where they went, only if they cross the picture, fitting to the local ones', () => {
-    const state = { ...DEFAULT_STATE, mapShow: true };
+    const state = { ...DEFAULT_STATE, underlay: 'map' as const };
     const { filters, layout, style } = toRenderRequest(state);
     const build = (f: typeof filters, l: typeof layout) => buildScene(prepared, f, l);
     const omit = mapScene(build, filters, layout, style, home, 'omit');
@@ -171,7 +171,7 @@ describe('map settings and drawing', () => {
   });
 
   it('draws the map under the routes, with its credit even without the mark', () => {
-    const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, mapShow: true, mark: false });
+    const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, underlay: 'map' as const, mark: false });
     const scene = buildScene(prepared, filters, { ...layout, geoAnchor: geo('omit') });
     const f = emptyFeatures();
     const v = visibleMeters(scene, style);
@@ -187,7 +187,7 @@ describe('map settings and drawing', () => {
   });
 
   it('draws no map or credit without features', () => {
-    const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, mapShow: true });
+    const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, underlay: 'map' as const });
     const svg = renderSvg(buildScene(prepared, filters, layout), style);
     expect(svg).not.toContain('class="map"');
     expect(svg).not.toContain('OpenStreetMap');

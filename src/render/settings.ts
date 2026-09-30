@@ -4,6 +4,7 @@ import { canvasSize, type Aspect, type Orientation } from './canvas';
 import { DEFAULT_LEGEND, type DateFormat, type LegendBackdrop, type LegendFont, type LegendPosition } from './legend';
 import type { ScaleStyle, Units } from './scale';
 import { DEFAULT_MAP_STYLE } from './map';
+import type { DistanceShape } from './distance';
 import { DEFAULT_STYLE, type Blend, type StyleOptions } from './svg';
 import type { GeoPoint } from '../map/anchor';
 
@@ -37,17 +38,20 @@ export interface EditorState {
   /** The "made with" mark on images; the person's choice, so presets leave it alone. */
   mark: boolean;
   /**
-   * A street map behind the routes. It's about the person's own place, so it
-   * isn't part of a look and presets leave it alone.
+   * What's drawn quietly behind the routes: nothing, a street map, or distance
+   * over time. The map is about the person's own place, so this isn't part of
+   * a look and presets leave it alone.
    */
-  mapShow: boolean;
+  underlay: 'none' | 'map' | 'distance';
+  /** Strength of the background, 0–1. */
+  underlayStrength: number;
+  distanceShape: DistanceShape;
   /** 'detected': the most common start; 'custom': the point in mapAt. */
   mapPlace: 'detected' | 'custom';
   /** "lat, lon", as map apps copy it. */
   mapAt: string;
   /** Routes that start away from the map's point. */
   mapOthers: OtherStarts;
-  mapOpacity: number;
 
   // How it looks.
   colorMode: ColorMode;
@@ -101,11 +105,12 @@ export const DEFAULT_STATE: EditorState = {
   name: '',
   units: DEFAULT_STYLE.units,
   mark: DEFAULT_STYLE.mark,
-  mapShow: false,
+  underlay: 'none',
+  underlayStrength: DEFAULT_MAP_STYLE.opacity,
+  distanceShape: 'total',
   mapPlace: 'detected',
   mapAt: '',
   mapOthers: 'true',
-  mapOpacity: DEFAULT_MAP_STYLE.opacity,
   colorMode: 'pace',
   fit: 95,
   squash: 1,
@@ -149,7 +154,7 @@ export function toRenderRequest(
   locale?: string,
 ): { filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null } {
   return {
-    map: s.mapShow ? { at: s.mapPlace === 'custom' ? parseLatLon(s.mapAt) : 'detected', others: s.mapOthers } : null,
+    map: s.underlay === 'map' ? { at: s.mapPlace === 'custom' ? parseLatLon(s.mapAt) : 'detected', others: s.mapOthers } : null,
     filters: { types: s.types, from: dayBoundary(s.from, false), to: dayBoundary(s.to, true) },
     layout: { colorMode: s.colorMode, fitPercentile: s.fit, radialExponent: s.squash },
     style: {
@@ -168,7 +173,8 @@ export function toRenderRequest(
       scaleColor: s.scaleColor,
       textBand: s.textBand,
       mark: s.mark,
-      map: s.mapShow ? { ...DEFAULT_MAP_STYLE, opacity: s.mapOpacity } : null,
+      map: s.underlay === 'map' ? { ...DEFAULT_MAP_STYLE, opacity: s.underlayStrength } : null,
+      distance: s.underlay === 'distance' ? { shape: s.distanceShape, strength: s.underlayStrength } : null,
       legend: {
         show: s.legendShow,
         title: s.title,

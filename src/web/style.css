@@ -288,3 +288,6 @@ footer a { color: var(--accent); }
 fieldset > legend { font-size: 0.9rem; padding: 0; margin-bottom: 4px; }
 label small { display: inline; }
 #mapStatus { color: var(--muted); font-size: 0.85rem; }
+
+/* Element display rules (label, .row…) would otherwise override the hidden attribute. */
+[hidden] { display: none !important; }

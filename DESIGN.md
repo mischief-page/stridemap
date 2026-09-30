@@ -65,7 +65,15 @@ So viewers can judge how long routes are, the image carries a distance scale in 
 
 When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale color can be chosen; by default it is white or black depending on how light the background is. Labels always get a halo in the background color.
 
-### Street map (optional)
+### Background (optional)
+One quiet layer can go behind the routes: none (default), a street map, or distance over time. They're alternatives, never stacked. One "strength" setting (default 25%) sets how faint it is. The background isn't part of a style, so presets leave it alone.
+
+#### Distance over time
+A faint area chart of the distance covered across the dates shown. It spans the full width of the art and rises from its bottom edge to at most half its height, with a slightly stronger line along the top edge. It shades from 40% of the way along the color scale (color A is usually close to the background, so starting there would vanish) to color B at the latest date. It has no axes or labels, since the legend already gives the dates and totals. It follows the filters and uses only dates and distances, so it reveals nothing about place.
+- *Running total* (default): always climbs. Steep stretches are big training blocks and flat ones are breaks. Sampled at most once per pixel column.
+- *Distance per month* (per week for spans under 120 days): peaks and valleys, with empty months drawn as zero so breaks show. The line is smoothed through the midpoints between periods.
+
+#### Street map
 For people whose routes mostly start from the same place (home), a translucent street map can go behind the routes. With the map on, routes are drawn in their **true position** around the map's point rather than each from its own start, so they line up with the real streets:
 - **Where:** by default the most common start. Starts are counted on a 100 m grid, the busiest 3×3 neighbourhood wins, and the point is the average of the starts within 300 m of it. Or the person enters coordinates ("41.8781, -87.6298", as map apps copy them) or searches an address.
 - **Routes starting at the point** (within 300 m) are drawn where they went, and the fit is based on them. Squash is off, since it would pull routes off their streets.
@@ -76,7 +84,7 @@ For people whose routes mostly start from the same place (home), a translucent s
 
   The page says how many start at the point, and how many from elsewhere are drawn.
 - **Map data:** vector tiles from [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data; free, including commercial use, no key). The zoom is the finest (up to 14) that covers the visible area in at most 144 tiles. Tiles are decoded in the worker, converted to meters in the routes' frame, and cached, so style changes don't refetch.
-- **Drawing:** one color (white or black to suit the background), under the routes and clipped with them: parks and woods as a light tint, water a stronger tint, rivers, paths dashed, minor streets thin, major roads bolder. The whole map layer has one opacity ("map strength", default 25%). Features outside the art are left out and the rest simplified to 0.75 px. Polygons use the nonzero fill rule, since neighbouring tiles overlap a little.
+- **Drawing:** one color (white or black to suit the background), under the routes and clipped with them: parks and woods as a light tint, water a stronger tint, rivers, paths dashed, minor streets thin, major roads bolder. The whole map layer takes the background strength as its opacity. Features outside the art are left out and the rest simplified to 0.75 px. Polygons use the nonzero fill rule, since neighbouring tiles overlap a little.
 - **Credit:** "map © OpenMapTiles © OpenStreetMap contributors" in the bottom margin, next to (or instead of) the made-with mark. It is always drawn with a map.
 - **Address search** uses OpenStreetMap's Nominatim, only when the person presses Find (its policy: no search-as-you-type, at most one request a second, attribution shown).
 - **Offline or failed:** routes are drawn as usual, without the map, and the page says so.

@@ -10,6 +10,7 @@ import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
 import { catmullRomControls, smoothPolyline } from './smooth';
 import { simplify } from './simplify';
 import { renderMap, type MapStyle } from './map';
+import { renderDistance, type DistanceStyle } from './distance';
 import { MAP_ATTRIBUTION, type MapFeatures } from '../map/tiles';
 
 export type Blend = 'normal' | 'screen' | 'multiply';
@@ -50,6 +51,8 @@ export interface StyleOptions {
   textBand: boolean;
   /** A translucent street map under the routes; drawn only when features are given to renderSvg. */
   map: MapStyle | null;
+  /** A quiet chart of distance over time under the routes. */
+  distance: DistanceStyle | null;
 }
 
 export const DEFAULT_STYLE: StyleOptions = {
@@ -70,6 +73,7 @@ export const DEFAULT_STYLE: StyleOptions = {
   textBand: false,
   mark: true,
   map: null,
+  distance: null,
 };
 
 const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
@@ -181,6 +185,7 @@ export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFe
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
 <svg class="art" y="${r(artTop)}" width="${W}" height="${r(artH)}" viewBox="0 ${r(artTop)} ${W} ${r(artH)}">
+${style.distance ? renderDistance(scene.timeline, style.distance, { top: artTop, width: W, height: artH, colorA: style.colorA, colorB: style.colorB }) : ''}
 ${map ? renderMap(map.features, map.style, { scale, ox, oy, top: artTop, width: W, height: artH, background: style.background }) : ''}
 <g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
 ${body}

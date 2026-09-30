@@ -174,7 +174,7 @@ test('draws a street map behind the routes when asked, from mocked tiles', async
   await settled(page);
   expect(await previewSvg(page)).not.toContain('class="map"');
 
-  await page.check('#mapShow');
+  await page.check('#underlay input[value="map"]');
   await expect(page.locator('#mapStatus')).toContainText('where most routes start');
   await settled(page);
   const svg = await previewSvg(page);
@@ -197,4 +197,22 @@ test('draws a street map behind the routes when asked, from mocked tiles', async
   await expect(page.locator('#mapStatus')).toContainText('No routes shown start within 300 m');
   await settled(page);
   expect(await previewSvg(page)).not.toContain('class="map"');
+});
+
+test('distance over time can go behind the routes', async ({ page }) => {
+  await visit(page, `${PAGE}?sample`);
+  await settled(page);
+  await expect(page.locator('#underlayStrength')).toBeHidden();
+  await page.check('#underlay input[value="distance"]');
+  await expect(page.locator('#distanceShape')).toBeVisible();
+  await expect(page.locator('#underlayStrength')).toBeVisible();
+  await expect(page.locator('#mapAt')).toBeHidden();
+  await settled(page);
+  expect(await previewSvg(page)).toContain('class="distance"');
+  await page.selectOption('#distanceShape', 'monthly');
+  await settled(page);
+  expect(await previewSvg(page)).toContain('class="distance"');
+  await page.check('#underlay input[value="none"]');
+  await settled(page);
+  expect(await previewSvg(page)).not.toContain('class="distance"');
 });
