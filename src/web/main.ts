@@ -1,4 +1,4 @@
-import { PRESETS, type Preset } from '../render/presets';
+import { DEFAULT_TITLE, PRESETS, type Preset } from '../render/presets';
 import { LOOK_KEYS, toRenderRequest, type EditorState } from '../render/settings';
 import { readState, refresh, watchControls, writeState } from './controls';
 import { createEngine } from './engine';
@@ -180,7 +180,7 @@ function setActivePreset(p: Preset | null) {
  * as finished.
  */
 function applyPreset(p: Preset) {
-  writeState({ ...p.look, title: readState().title.trim() || 'Every Step' });
+  writeState({ ...p.look, title: readState().title.trim() || DEFAULT_TITLE });
   setActivePreset(p);
   render();
 }

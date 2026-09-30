@@ -11,7 +11,7 @@ import { parseArgs } from 'node:util';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { readHealthExport } from '../src/parse/health-export';
 import { renderPrintPng } from '../src/print/render';
-import { findPreset } from '../src/render/presets';
+import { DEFAULT_TITLE, findPreset } from '../src/render/presets';
 import { DEFAULT_STATE, toRenderRequest } from '../src/render/settings';
 import { renderSvg } from '../src/render/svg';
 import { syntheticWorkouts } from '../src/sample/synthetic';
@@ -22,7 +22,7 @@ const { values, positionals } = parseArgs({
   options: {
     preset: { type: 'string', default: 'afterglow' },
     sku: { type: 'string', default: 'GLOBAL-FAP-18X24' },
-    title: { type: 'string', default: 'Every Step' },
+    title: { type: 'string', default: DEFAULT_TITLE },
     out: { type: 'string' },
   },
 });

@@ -20,12 +20,12 @@ describe('presets', () => {
 
   it('renders each one as a portrait poster with its legend in a band', () => {
     for (const p of PRESETS) {
-      const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, ...p.look, title: 'Every Step' });
+      const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, ...p.look, title: 'My Workouts' });
       const svg = renderSvg(buildScene(prepared, filters, layout), style);
       expect(svg).toContain('viewBox="0 0 1200 1600"');
       expect(svg).toContain(`fill="${p.look.background}"`);
       expect(svg).toMatch(/<svg class="art" y="[\d.]+" width="1200" height="(1[0-4]\d\d|\d{3})(\.\d)?"/);
-      expect(svg).toContain('Every Step');
+      expect(svg).toContain('My Workouts');
     }
   });
 });

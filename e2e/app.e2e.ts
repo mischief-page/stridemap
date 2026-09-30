@@ -41,7 +41,7 @@ test('opens on the Afterglow poster with sample data', async ({ page }) => {
   await settled(page);
   const svg = await previewSvg(page);
   expect(svg).toContain('viewBox="0 0 1200 1600"');
-  expect(svg).toContain('>Every Step<');
+  expect(svg).toContain('>My Workouts<');
   expect(svg).toMatch(/\d+ activities · [\d,]+ (mi|km)/);
   expect(await activePreset(page)).toBe('afterglow');
   await expect(page.locator('#status')).toContainText('300 of 300');

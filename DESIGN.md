@@ -101,7 +101,7 @@ Five finished looks someone can pick and be happy with, shown as cards at the to
 | Terracotta | Peach to rust on cream; ink blend; heavy smoothing | Serif, bottom left |
 | Sketch | Graphite pencil on warm paper | Mono, bottom right |
 
-A preset sets the look (colors, lines, type, print shape, scale) but never the person's own choices: filters, title and name text, and units. An empty title becomes "Every Step" so the poster reads as finished. Changing any look control afterwards marks the style as custom. Presets live in `src/render/presets.ts`, shared by the page and the CLI (`--preset`).
+A preset sets the look (colors, lines, type, print shape, scale) but never the person's own choices: filters, title and name text, and units. An empty title becomes "My Workouts" so the poster reads as finished. Changing any look control afterwards marks the style as custom. Presets live in `src/render/presets.ts`, shared by the page and the CLI (`--preset`).
 
 ### Legend
 An optional legend with up to three lines: a **title**, a **name**, and the **dates shown**. The dates are the first and last workout actually drawn, so they follow the filters, formatted as months ("Jan 2024 – Aug 2025"), days or years in the viewer's locale.

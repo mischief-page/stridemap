@@ -5,6 +5,9 @@ import type { Look } from './settings';
  * setting, and never the person's own choices: filters, title and name text,
  * and units.
  */
+/** The title a preset gives a poster that has none, so it reads as finished. */
+export const DEFAULT_TITLE = 'My Workouts';
+
 export interface Preset {
   id: string;
   name: string;
