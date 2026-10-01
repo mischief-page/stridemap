@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { Reader } from '@zip.js/zip.js/lib/zip-core-native.js';
-import { prepareWorkouts } from '../core/pipeline';
+import { prepareWithReport } from '../core/pipeline';
 import type { Workout } from '../core/types';
 import { readExport, type Progress } from '../parse/import';
 import { PosterEngine, type MapResult, type PosterRequest } from '../app/poster';
@@ -27,7 +27,7 @@ export type { MapResult };
 export type EngineMessage =
   | { kind: 'read'; load: number; id: number; offset: number; length: number }
   | { kind: 'progress'; load: number; progress: Progress }
-  | { kind: 'loaded'; load: number; withGps: number; firstStart: number | null; lastStart: number | null }
+  | { kind: 'loaded'; load: number; withGps: number; duplicates: number; firstStart: number | null; lastStart: number | null }
   | { kind: 'rendered'; seq: number; svg: string; width: number; height: number; shown: number; withGps: number; map: MapResult | null }
   | { kind: 'error'; message: string; during: 'load' | 'render' };
 
@@ -69,7 +69,7 @@ class PageFileReader extends Reader<number> {
 let currentLoad = 0;
 
 function loaded(list: Workout[], load: number) {
-  const prepared = prepareWorkouts(list);
+  const { workouts: prepared, duplicates } = prepareWithReport(list);
   // An export with nothing to draw leaves the data already loaded in place.
   if (!prepared.length) throw new Error(NO_ROUTES);
   engine = new PosterEngine(prepared, mapLoader);
@@ -83,6 +83,7 @@ function loaded(list: Workout[], load: number) {
     kind: 'loaded',
     load,
     withGps: prepared.length,
+    duplicates,
     firstStart: first,
     lastStart: last,
   });

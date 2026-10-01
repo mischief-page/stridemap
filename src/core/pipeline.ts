@@ -97,35 +97,77 @@ export interface PreparedWorkout {
   distanceM: number;
 }
 
+/** How much of the shorter workout two recordings must share in time to be the same outing. */
+const DUPLICATE_OVERLAP = 0.8;
+/** …and how close their starts must be. */
+const DUPLICATE_START_M = 200;
+
 /**
  * Prepares every outdoor workout with a usable GPS track; the rest are left
- * out. Ids are made unique here: per-workout values are keyed by id, and two
- * workouts of the same type can start in the same second (say, recorded by the
- * watch and by another app).
+ * out. The same outing recorded twice (say, by the watch and by another app
+ * that also writes to Health) is kept once: two workouts are duplicates when
+ * they share at least 80% of the shorter one's time and start within 200 m,
+ * whatever type each app gave it. The copy with more GPS points is kept.
+ *
+ * Ids are also made unique here: per-workout values are keyed by id, and two
+ * workouts of the same type could otherwise share one.
  */
 export function prepareWorkouts(workouts: Workout[]): PreparedWorkout[] {
-  const out: PreparedWorkout[] = [];
-  const seen = new Map<string, number>();
+  return prepareWithReport(workouts).workouts;
+}
+
+/** prepareWorkouts, also saying how many duplicates were left out. */
+export function prepareWithReport(workouts: Workout[]): { workouts: PreparedWorkout[]; duplicates: number } {
+  type Candidate = { w: Workout; track: Track; t0: number; t1: number };
+  const candidates: Candidate[] = [];
   for (const w of workouts) {
     if (w.indoor || !w.track) continue;
     const track = cleanTrack(w.track);
-    if (track.t.length < 2) continue;
+    const n = track.t.length;
+    if (n < 2) continue;
+    candidates.push({ w, track, t0: track.t[0]!, t1: track.t[n - 1]! });
+  }
+
+  // Sweep in start order, comparing each workout with the kept ones still running.
+  candidates.sort((a, b) => a.t0 - b.t0);
+  const kept: Candidate[] = [];
+  let duplicates = 0;
+  for (const c of candidates) {
+    const twin = kept.find((k) => {
+      if (k.t1 <= c.t0) return false;
+      const overlap = Math.min(k.t1, c.t1) - c.t0;
+      const shorter = Math.min(k.t1 - k.t0, c.t1 - c.t0);
+      return (
+        overlap >= DUPLICATE_OVERLAP * shorter &&
+        flatDistance(k.track.lat[0]!, k.track.lon[0]!, c.track.lat[0]!, c.track.lon[0]!) <= DUPLICATE_START_M
+      );
+    });
+    if (!twin) {
+      kept.push(c);
+      continue;
+    }
+    duplicates++;
+    if (c.track.t.length > twin.track.t.length) kept[kept.indexOf(twin)] = c;
+  }
+
+  const seen = new Map<string, number>();
+  const out = kept.map(({ w, track }): PreparedWorkout => {
     // Negate pace so larger always means "hotter" (faster).
     const pace = paceSeries(track);
     const value = new Float32Array(pace.length);
     for (let i = 0; i < pace.length; i++) value[i] = -pace[i]!;
     const copies = (seen.get(w.id) ?? 0) + 1;
     seen.set(w.id, copies);
-    out.push({
+    return {
       id: copies === 1 ? w.id : `${w.id}#${copies}`,
       type: w.type,
       start: w.start,
       origin: { lat: track.lat[0]!, lon: track.lon[0]! },
       local: { ...anchorTrack(track), value },
       distanceM: trackDistance(track),
-    });
-  }
-  return out;
+    };
+  });
+  return { workouts: out, duplicates };
 }
 
 function filterWorkouts(workouts: PreparedWorkout[], filters: Filters): PreparedWorkout[] {

@@ -27,14 +27,15 @@ const engine = createEngine({
     $('loadingText').textContent = text;
     $<HTMLProgressElement>('loadingBar').value = fraction;
   },
-  onLoaded({ withGps, firstStart, lastStart }) {
+  onLoaded({ withGps, duplicates, firstStart, lastStart }) {
     const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
     for (const id of ['from', 'to']) {
       $<HTMLInputElement>(id).min = iso(firstStart!);
       $<HTMLInputElement>(id).max = iso(lastStart!);
     }
     const month = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-    $('dataRange').textContent = `Your data: ${withGps} workouts with GPS, ${month(firstStart!)} – ${month(lastStart!)}.`;
+    const dupes = duplicates ? ` (${duplicates} recorded twice, counted once)` : '';
+    $('dataRange').textContent = `Your data: ${withGps} workouts with GPS${dupes}, ${month(firstStart!)} – ${month(lastStart!)}.`;
     source = reading ? { kind: 'file', name: reading } : { kind: 'sample' };
     reading = null;
     $('loading').hidden = true;

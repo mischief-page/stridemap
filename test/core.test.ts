@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cleanTrack } from '../src/core/clean';
 import { anchorTrack, compressRadially, fitBounds } from '../src/core/layout';
-import { buildScene, prepareWorkouts, type Filters, type LayoutOptions } from '../src/core/pipeline';
+import { buildScene, prepareWithReport, prepareWorkouts, type Filters, type LayoutOptions } from '../src/core/pipeline';
 import { METERS_PER_DEG_LAT, trackFromPoints, type TrackPoint } from '../src/core/track';
 import { ACTIVITY_TYPES, type LocalTrack, type Workout } from '../src/core/types';
 import { HeatGrid, paceSeries } from '../src/core/values';
@@ -125,9 +125,46 @@ describe('prepareWorkouts', () => {
     expect(prepared[0]!.local.bbox.maxX).toBeCloseTo(300, 0);
   });
 
+  describe('duplicates', () => {
+    const [w] = syntheticWorkouts(1);
+    const track = w!.track!;
+    // The same outing from another app: starts 4 s later, a few meters off, fewer points, another type.
+    const sparse = (k: number) => Array.from({ length: Math.ceil(track.t.length / k) }, (_, i) => i * k);
+    const pick = <T extends Float64Array | Float32Array>(a: T, idx: number[]) => Float64Array.from(idx, (i) => a[i]!) as unknown as T;
+    const idx = sparse(5);
+    const other: Workout = {
+      ...w!,
+      id: 'other-app',
+      type: 'hiking',
+      start: w!.start + 4000,
+      track: {
+        t: Float64Array.from(idx, (i) => track.t[i]! + 4000),
+        lat: Float64Array.from(idx, (i) => track.lat[i]! + 0.00003),
+        lon: pick(track.lon, idx),
+        speed: Float32Array.from(idx, (i) => track.speed[i]!),
+        hAcc: Float32Array.from(idx, (i) => track.hAcc[i]!),
+      },
+    };
+
+    it('keeps one copy of the same outing recorded twice, the one with more points', () => {
+      const { workouts, duplicates } = prepareWithReport([other, w!]);
+      expect(duplicates).toBe(1);
+      expect(workouts.map((p) => p.id)).toEqual([w!.id]);
+    });
+
+    it('keeps workouts that only touch in time, or overlap but start far apart', () => {
+      const t = track.t;
+      const span = t[t.length - 1]! - t[0]!;
+      const later: Workout = { ...w!, id: 'later', start: w!.start + span, track: { ...track, t: t.map((v) => v + span) } };
+      const elsewhere: Workout = { ...w!, id: 'elsewhere', track: { ...track, lat: track.lat.map((v) => v + 0.01) } };
+      expect(prepareWithReport([w!, later, elsewhere]).duplicates).toBe(0);
+    });
+  });
+
   it('gives workouts that share an id (same type, same start second) their own ids', () => {
     const [w] = syntheticWorkouts(1);
-    const copy = { ...w!, track: { ...w!.track!, lat: w!.track!.lat.map((v) => v + 0.001) } };
+    // Same type and start second but about 1 km away: not the same outing, so both are kept.
+    const copy = { ...w!, track: { ...w!.track!, lat: w!.track!.lat.map((v) => v + 0.01) } };
     const prepared = prepareWorkouts([w!, copy]);
     expect(prepared.map((p) => p.id)).toEqual([w!.id, `${w!.id}#2`]);
     // Each keeps its own "how often" values, one per point.

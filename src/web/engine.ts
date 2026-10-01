@@ -10,7 +10,7 @@ type RenderRequest = { filters: Filters; layout: LayoutOptions; style: StyleOpti
 export interface EngineHandlers {
   /** `fraction` is how far through the current stage, 0–1. */
   onProgress(text: string, fraction: number): void;
-  onLoaded(info: { withGps: number; firstStart: number | null; lastStart: number | null }): void;
+  onLoaded(info: { withGps: number; duplicates: number; firstStart: number | null; lastStart: number | null }): void;
   /** `more` is true when a newer request is already on its way. */
   onRendered(result: { svg: string; width: number; height: number; shown: number; withGps: number; map: MapResult | null }, more: boolean): void;
   onError(message: string, during: 'load' | 'render'): void;

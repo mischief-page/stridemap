@@ -15,7 +15,7 @@ import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { PosterEngine } from '../src/app/poster';
 import { toRenderRequest } from '../src/app/settings';
-import { prepareWorkouts } from '../src/core/pipeline';
+import { prepareWithReport } from '../src/core/pipeline';
 import { NEAR_RADIUS_M } from '../src/map/anchor';
 import { geocode } from '../src/map/geocode';
 import { readExport } from '../src/parse/import';
@@ -52,7 +52,8 @@ await run(async () => {
     Object.assign(state, { underlay: 'map', mapPlace: 'custom', mapAt: `${hit.lat}, ${hit.lon}` });
   }
 
-  const engine = new PosterEngine(prepareWorkouts(workouts));
+  const { workouts: prepared, duplicates } = prepareWithReport(workouts);
+  const engine = new PosterEngine(prepared);
   const request = toRenderRequest(state);
   if (request.map?.at === null) throw new OptionError('--map-at needs "lat, lon", e.g. --map-at "41.8781, -87.6298"');
   const { svg, scene, map } = await engine.render(request);
@@ -67,5 +68,6 @@ await run(async () => {
   const out = values.out;
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, svg);
-  console.log(`${workouts.length} workouts found, ${engine.workouts.length} outdoor with GPS, ${scene.workoutCount} drawn -> ${out} (${(svg.length / 1024).toFixed(0)} KB)`);
+  const dupes = duplicates ? ` (${duplicates} duplicates left out)` : '';
+  console.log(`${workouts.length} workouts found, ${engine.workouts.length} outdoor with GPS${dupes}, ${scene.workoutCount} drawn -> ${out} (${(svg.length / 1024).toFixed(0)} KB)`);
 });
