@@ -1,5 +1,5 @@
 import { round1 } from './format';
-import { inkFor } from './scale';
+import { inkFor } from './ink';
 
 /** The product name as it appears on images. One place to change it. */
 export const BRAND = 'stridemap';

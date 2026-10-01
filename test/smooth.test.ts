@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
 import { smoothPolyline, type Polyline } from '../src/render/smooth';
-import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
+import { renderSvg } from '../src/render/svg';
+import { DEFAULT_STYLE } from '../src/render/style';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 /** An L-shaped route: 200 px right, then 200 px down, one point per pixel. */

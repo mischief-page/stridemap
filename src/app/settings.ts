@@ -1,11 +1,20 @@
 import type { ColorMode, Filters, LayoutOptions, OtherStarts } from '../core/pipeline';
 import { ACTIVITY_TYPES, type ActivityType } from '../core/types';
-import { canvasSize, type Aspect, type Orientation } from './canvas';
-import { DEFAULT_LEGEND, type DateFormat, type LegendBackdrop, type LegendFont, type LegendPosition } from './legend';
-import type { ScaleStyle, Units } from './scale';
-import { DEFAULT_MAP_STYLE } from './map';
-import type { DistanceShape } from './distance';
-import { DEFAULT_STYLE, type Blend, type StyleOptions } from './svg';
+import { canvasSize, type Aspect, type Orientation } from '../render/canvas';
+import {
+  DEFAULT_LEGEND,
+  DEFAULT_MAP_STYLE,
+  DEFAULT_STYLE,
+  type Blend,
+  type DateFormat,
+  type DistanceShape,
+  type LegendBackdrop,
+  type LegendFont,
+  type LegendPosition,
+  type ScaleStyle,
+  type StyleOptions,
+  type Units,
+} from '../render/style';
 import type { GeoPoint } from '../map/anchor';
 
 /** Where the map goes: the detected start, a point, or null when the point typed can't be read. */

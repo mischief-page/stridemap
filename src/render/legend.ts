@@ -1,76 +1,8 @@
 import { formatHex, interpolate } from 'culori';
 import type { ActivityType } from '../core/types';
-import { inkFor, type Units } from './scale';
+import { inkFor } from './ink';
+import { LEGEND_FONTS, type DateFormat, type LegendOptions, type Units } from './style';
 import { round1 as r } from './format';
-
-export type LegendPosition =
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-center'
-  | 'bottom-right';
-
-/** System font stacks only, so the page keeps working offline and from file://. */
-export const LEGEND_FONTS = {
-  sans: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",
-  serif: "ui-serif, 'New York', Georgia, 'Times New Roman', serif",
-  mono: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-  rounded: "ui-rounded, 'SF Pro Rounded', system-ui, sans-serif",
-} as const;
-
-export type LegendFont = keyof typeof LEGEND_FONTS;
-
-/** 'month' → "Jan 2024 – Aug 2025"; 'day' → "Jan 3, 2024 – Aug 5, 2025"; 'year' → "2024 – 2025". */
-export type DateFormat = 'month' | 'day' | 'year';
-
-/**
- * 'halo' outlines the text in the background color; 'panel' puts it on a
- * translucent box. Both keep it readable over busy routes.
- */
-export type LegendBackdrop = 'none' | 'halo' | 'panel';
-
-export interface LegendOptions {
-  show: boolean;
-  title: string;
-  name: string;
-  showDates: boolean;
-  dateFormat: DateFormat;
-  /** A line of totals, e.g. "412 runs · 2,318 mi". */
-  showStats: boolean;
-  /** A small gradient key: "rarely ▬ often", or "slower ▬ faster" for pace. */
-  colorKey: boolean;
-  /** What the colors show, for the key's words. */
-  colorMode: 'pace' | 'frequency';
-  position: LegendPosition;
-  font: LegendFont;
-  /** Multiplier on the default text size. */
-  size: number;
-  /** Title in spaced capitals. */
-  uppercaseTitle: boolean;
-  /** null picks white or black to suit the background. */
-  color: string | null;
-  backdrop: LegendBackdrop;
-  /** BCP 47 locale for dates; undefined uses the viewer's. */
-  locale?: string;
-}
-
-export const DEFAULT_LEGEND: LegendOptions = {
-  show: false,
-  title: '',
-  name: '',
-  showDates: true,
-  dateFormat: 'month',
-  showStats: false,
-  colorKey: false,
-  colorMode: 'pace',
-  position: 'top-left',
-  font: 'sans',
-  size: 1,
-  uppercaseTitle: false,
-  color: null,
-  backdrop: 'halo',
-};
 
 export function formatDateRange(range: [number, number], format: DateFormat, locale?: string): string {
   const opts: Intl.DateTimeFormatOptions =

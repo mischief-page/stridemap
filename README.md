@@ -54,7 +54,7 @@ npm run cli -- --sample --preset gallery --title "Two Years on Foot" --name "Ale
 
 CLI options: `--aspect 3:2|4:3|5:4|7:5|iso|16:9|1:1` (default 3:2 landscape; add `--portrait`), `--mode pace|frequency`, `--types running,walking,hiking`, `--from`/`--to` (dates), `--fit 50..100`, `--squash 0.3..1`, `--smooth 0..40` (pixels), `--pencil 0.3..3` (hand-drawn wobble; turns on the pencil style) with `--grain 0..1`, `--color-a`, `--color-b`, `--background`, `--line-width`, `--opacity`, `--blend screen|multiply|normal`, `--scale bar|rings|off`, `--units km|mi`, `--scale-color` (defaults to white or black to suit the background).
 
-Legend options (the legend appears when any of the first three are given): `--title "…"`, `--name "…"`, `--dates`, `--date-format month|day|year`, `--legend-position top-left|top-center|top-right|bottom-left|bottom-center|bottom-right`, `--legend-font sans|serif|mono|rounded`, `--legend-size 0.5..2`, `--legend-caps`, `--legend-color`, `--legend-backdrop halo|panel|none`, `--no-mark` (leave off the small "made with stridemap" mark), `--stats` (a totals line such as "412 runs · 2,318 mi"), `--text-band` (keep the legend in its own band so routes never run under it).
+Legend options (the legend appears when any of the first three are given): `--title "…"`, `--name "…"`, `--dates`, `--date-format month|day|year`, `--legend-position top-left|top-center|top-right|bottom-left|bottom-center|bottom-right`, `--legend-font sans|serif|mono|rounded`, `--legend-size 0.5..2`, `--legend-caps`, `--legend-color`, `--legend-backdrop halo|panel|none`, `--no-mark` (leave off the small "made with stridemap" mark), `--stats` (a totals line such as "412 runs · 2,318 mi"), `--color-key` (a small key saying what the colors mean), `--text-band` (keep the legend in its own band so routes never run under it).
 
 Street map behind the routes (optional; for when most routes start from the same place): `--map` centres it where most routes start, `--map-at "41.8781, -87.6298"` on a point, or `--map-address "…"` on an address (looked up with OpenStreetMap's Nominatim, the only step that sends anything off your machine). `--background-strength 0.05..0.8`, `--map-others true|anchored|omit` (routes starting elsewhere: where they really went, the default; from the map's point; or left out). Map tiles come from [OpenFreeMap](https://openfreemap.org).
 
@@ -82,7 +82,7 @@ Configuration is in `wrangler.jsonc`; security headers are in `public/_headers`.
 Settings live in `.env.local` (never committed): `PRODIGI_API_KEY` and `PRODIGI_API_URL` for Prodigi's free test environment (the default), `PRODIGI_LIVE_API_KEY` and `PRODIGI_LIVE_API_URL` for real orders (`--live`), `R2_BUCKET`, `R2_PUBLIC_URL`, and the recipient (`PRINT_TO_NAME`, `PRINT_TO_LINE1`, `PRINT_TO_CITY`, `PRINT_TO_STATE`, `PRINT_TO_ZIP`, optional `PRINT_TO_EMAIL`, `PRINT_TO_LINE2`).
 
 ```sh
-npm run print-file -- --preset ember --sku GLOBAL-FAP-18X24     # 300 DPI print file in out/print/
+npm run print-file -- --preset ember --sku GLOBAL-FAP-18X24     # 300 DPI print file in out/print/ (takes every CLI option too)
 npm run print-order -- --file out/print/ember-GLOBAL-FAP-18X24.png --sku GLOBAL-FAP-18X24
 npm run print-status -- ord_1175284                                 # production steps, issues, tracking
 ```
@@ -98,10 +98,11 @@ src/
   parse/    Apple Health or Strava zip → workouts with GPS tracks (streaming, works in a Web Worker); FIT, GPX, TCX, CSV readers
   map/      optional street map: most common start, map tiles, address search
   core/     cleaning, pace, real-world frequency heat, anchoring and fitting
-  render/   scene → SVG; settings.ts (every setting, shared by page and CLI); presets.ts
+  render/   scene → SVG; style.ts (every drawing option and its allowed values, no libraries)
+  app/      settings.ts (every setting, shared by page and CLI), presets.ts, poster.ts (the PosterEngine all drawing goes through)
   sample/   synthetic workouts for demos and tests
   web/      the browser app: controls table, engine (worker client), preview, preset cards
-scripts/    command-line renderer; fake-export generator
+scripts/    command-line renderer and print files (options.ts: the shared, checked options); fake-export generators
 e2e/        browser tests
 ```
 

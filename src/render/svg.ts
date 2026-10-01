@@ -1,80 +1,18 @@
 import { formatHex, interpolate } from 'culori';
 import type { Scene } from '../core/pipeline';
-import type { Bounds } from '../core/types';
+import type { MapFeatures } from '../core/types';
 import { renderMark } from './brand';
-import { canvasSize } from './canvas';
 import { round1 as r } from './format';
-import { DEFAULT_LEGEND, escapeXml, LEGEND_FONTS, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from './legend';
-import { renderScale, scaleUsesRings, type ScaleStyle, type Units } from './scale';
-import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
+import { escapeXml, renderLegend } from './legend';
+import { artFrame, legendFacts } from './frame';
+import { renderScale, scaleUsesRings } from './scale';
+import { pencilFilter, pencilPath } from './pencil';
 import { catmullRomControls, smoothPolyline } from './smooth';
 import { simplify } from './simplify';
-import { renderMap, type MapStyle } from './map';
-import { renderDistance, type DistanceStyle } from './distance';
-import { MAP_ATTRIBUTION, type MapFeatures } from '../map/tiles';
+import { MAP_ATTRIBUTION, renderMap } from './map';
+import { renderDistance } from './distance';
+import { LEGEND_FONTS, type StyleOptions } from './style';
 
-export type Blend = 'normal' | 'screen' | 'multiply';
-
-export interface StyleOptions {
-  width: number;
-  height: number;
-  /** Empty margin around the fitted routes, in pixels. */
-  padding: number;
-  /** Cool end of the scale: slow pace, or streets visited once. */
-  colorA: string;
-  /** Hot end of the scale: fast pace, or the most-visited streets. */
-  colorB: string;
-  background: string;
-  strokeWidth: number;
-  opacity: number;
-  /**
-   * Blur radius in image pixels. 0 draws the GPS track as recorded; higher
-   * values round corners into curves and turn routes into flowing strokes.
-   */
-  smoothing: number;
-  /** Hand-drawn pencil look; null draws clean lines. */
-  pencil: PencilOptions | null;
-  /** 'screen' makes overlaps glow on dark backgrounds; 'multiply' darkens on light ones. */
-  blend: Blend;
-  /** Distance scale so viewers can judge how long the routes are. */
-  scale: ScaleStyle;
-  units: Units;
-  /** Color of the scale bar or rings and their labels; null picks white or black to suit the background. */
-  scaleColor: string | null;
-  legend: LegendOptions;
-  /** The small "made with" mark in the bottom margin. */
-  mark: boolean;
-  /**
-   * Give the legend its own band at the top or bottom of the poster, so the
-   * routes never run underneath the text.
-   */
-  textBand: boolean;
-  /** A translucent street map under the routes; drawn only when features are given to renderSvg. */
-  map: MapStyle | null;
-  /** A quiet chart of distance over time under the routes. */
-  distance: DistanceStyle | null;
-}
-
-export const DEFAULT_STYLE: StyleOptions = {
-  ...canvasSize('3:2', 'landscape'),
-  padding: 60,
-  colorA: '#1d4ed8',
-  colorB: '#fbbf24',
-  background: '#0b0f19',
-  strokeWidth: 1.2,
-  opacity: 0.7,
-  smoothing: 0,
-  pencil: null,
-  blend: 'screen',
-  scale: 'bar',
-  units: 'km',
-  scaleColor: null,
-  legend: DEFAULT_LEGEND,
-  textBand: false,
-  mark: true,
-  map: null,
-  distance: null,
-};
 
 const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
 const FADE_ID = 'stridemap-band-fade';
@@ -103,67 +41,14 @@ const SIMPLIFY_PX = 1;
 /** Curves through the kept points follow a smoothed route closely, so fewer points are needed. */
 const SIMPLIFY_CURVED_PX = 2;
 
-/** Where the art sits on the canvas and how meters map onto it. */
-export interface ArtFrame {
-  artTop: number;
-  artH: number;
-  /** Pixels per meter. */
-  scale: number;
-  /** Screen position of the anchor (0, 0). */
-  ox: number;
-  oy: number;
-}
-
-function legendFacts(scene: Scene, style: StyleOptions): LegendFacts {
-  return {
-    dateRange: scene.dateRange,
-    count: scene.workoutCount,
-    distanceM: scene.totalDistanceM,
-    activityTypes: scene.activityTypes,
-    units: style.units,
-  };
-}
-
-export function artFrame(scene: Scene, style: StyleOptions): ArtFrame {
-  const { width: W, height: H, padding: P } = style;
-  const { bounds: b } = scene;
-  const frame = { width: W, height: H, padding: P, background: style.background };
-
-  // The art fills the canvas, or everything but the legend's band.
-  const textH = style.textBand ? legendHeight(frame, style.legend, legendFacts(scene, style)) : 0;
-  const band = textH ? textH + P * 1.5 : 0;
-  const bandAtTop = style.legend.position.startsWith('top');
-  const artTop = bandAtTop ? band : 0;
-  const artH = H - band;
-
-  // Uniform scale so north stays up and shapes aren't stretched, then center the box.
-  const bw = Math.max(b.maxX - b.minX, 1);
-  const bh = Math.max(b.maxY - b.minY, 1);
-  const scale = Math.min((W - 2 * P) / bw, (artH - 2 * P) / bh);
-  const ox = W / 2 - ((b.minX + b.maxX) / 2) * scale;
-  const oy = artTop + artH / 2 + ((b.minY + b.maxY) / 2) * scale; // screen y points down
-  return { artTop, artH, scale, ox, oy };
-}
-
-/** The part of the world the art shows, in meters around the anchor: what a map behind it has to cover. */
-export function visibleMeters(scene: Scene, style: StyleOptions): Bounds {
-  const { artTop, artH, scale, ox, oy } = artFrame(scene, style);
-  return {
-    minX: -ox / scale,
-    maxX: (style.width - ox) / scale,
-    minY: (oy - artTop - artH) / scale,
-    maxY: (oy - artTop) / scale,
-  };
-}
-
-export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFeatures | null): string {
+export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFeatures | null, cache: RouteShapeCache = {}): string {
   const { width: W, height: H, padding: P } = style;
   const frame = { width: W, height: H, padding: P, background: style.background, colors: [style.colorA, style.colorB] as [string, string] };
   const facts = legendFacts(scene, style);
   const { artTop, artH, scale, ox, oy } = artFrame(scene, style);
   const map = style.map && mapFeatures ? { style: style.map, features: mapFeatures } : null;
 
-  const body = drawRoutes(scene, style, scale, ox, oy);
+  const body = drawRoutes(scene, style, scale, ox, oy, cache);
   // With a text band, routes fade out just before it instead of stopping at a hard edge.
   const fade = artH < H ? bandFade(W, artTop, artH, artTop > 0 ? 'top' : 'bottom') : null;
   // Keep the scale bar out of the legend's way, and the mark out of the bar's.
@@ -247,18 +132,21 @@ function quietestDirection(scene: Scene, scale: number, labelPx: number): number
 }
 
 /**
- * The route shapes last drawn, one path per color step. They depend only on
- * the scene, canvas and line-shape settings, so color, opacity, blend and
- * overlay changes reuse them. That matters most for the pencil style, where
- * generating the hand-drawn strokes is the slow part.
+ * The route shapes last drawn, one path per color step, kept by the caller
+ * (the poster engine) between renders. They depend only on the scene, canvas
+ * and line-shape settings, so color, opacity, blend and overlay changes reuse
+ * them. That matters most for the pencil style, where generating the
+ * hand-drawn strokes is the slow part.
  */
-let shapesCache: { scene: Scene; key: string; paths: string[] } | null = null;
+export interface RouteShapeCache {
+  last?: { scene: Scene; key: string; paths: string[] };
+}
 
-function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string[] {
+function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number, cache: RouteShapeCache): string[] {
   // Where the routes sit (scale and anchor) is part of the key: the text band
   // moves them whenever the legend's height changes.
   const key = JSON.stringify([scale, ox, oy, style.smoothing, style.pencil?.roughness]);
-  if (shapesCache?.scene === scene && shapesCache.key === key) return shapesCache.paths;
+  if (cache.last?.scene === scene && cache.last.key === key) return cache.last.paths;
 
   const { domain } = scene;
   const binOf = (v: number) => {
@@ -312,12 +200,12 @@ function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: numbe
     // Each color step gets its own fixed seed, so the wobble is stable between redraws.
     return style.pencil ? pencilPath(d.join(''), style.pencil.roughness, i + 1) : d.join('');
   });
-  shapesCache = { scene, key, paths };
+  cache.last = { scene, key, paths };
   return paths;
 }
 
-function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number): string {
-  const paths = routeShapes(scene, style, scale, ox, oy);
+function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number, cache: RouteShapeCache): string {
+  const paths = routeShapes(scene, style, scale, ox, oy, cache);
   const color = interpolate([style.colorA, style.colorB], 'oklch');
   const blendStyle = style.blend === 'normal' ? '' : ` style="mix-blend-mode:${style.blend}"`;
   // Hotter bins are drawn last so they sit on top.

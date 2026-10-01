@@ -1,5 +1,5 @@
-import { PRESETS, type Preset } from '../render/presets';
-import { inkFor } from '../render/scale';
+import { PRESETS, type Preset } from '../app/presets';
+import { inkFor } from '../render/ink';
 
 /** A tiny radiating web in the preset's colors, standing in for a thumbnail. */
 function thumbnail({ look }: Preset): string {

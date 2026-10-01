@@ -4,7 +4,8 @@ import { flatDistance, METERS_PER_DEG_LAT, metersPerDegLon } from './track';
 import { HeatGrid, paceSeries } from './values';
 import type { ActivityType, Bounds, LocalTrack, Track, Workout } from './types';
 
-export type ColorMode = 'pace' | 'frequency';
+export const COLOR_MODES = ['pace', 'frequency'] as const;
+export type ColorMode = (typeof COLOR_MODES)[number];
 
 export interface Filters {
   types: ActivityType[];
@@ -33,7 +34,8 @@ export interface LayoutOptions {
  * match the map too), keeping only those that cross `view`; 'anchored' draws
  * them from the map's point, as without a map (they won't match the streets).
  */
-export type OtherStarts = 'omit' | 'true' | 'anchored';
+export const OTHER_STARTS = ['true', 'anchored', 'omit'] as const;
+export type OtherStarts = (typeof OTHER_STARTS)[number];
 
 export interface GeoAnchor {
   lat: number;
@@ -135,22 +137,25 @@ function filterWorkouts(workouts: PreparedWorkout[], filters: Filters): Prepared
 }
 
 /**
- * Visit counts depend only on which workouts are selected, so the last grid's
- * values are reused until the selection changes.
+ * Work kept between scenes by whoever builds them (the poster engine). Visit
+ * counts depend only on which workouts are selected, so the last grid's values
+ * are reused until the selection changes.
  */
-let heatCache: { key: string; values: Map<string, Float32Array> } | null = null;
-
-function frequencyValues(selected: PreparedWorkout[]): Map<string, Float32Array> {
-  const key = selected.map((w) => w.id).join('|');
-  if (heatCache?.key !== key) {
-    const heat = new HeatGrid();
-    for (const w of selected) heat.add(w);
-    heatCache = { key, values: new Map(selected.map((w) => [w.id, heat.series(w)])) };
-  }
-  return heatCache.values;
+export interface SceneCaches {
+  heat?: { key: string; values: Map<string, Float32Array> };
 }
 
-export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: LayoutOptions): Scene {
+function frequencyValues(selected: PreparedWorkout[], caches: SceneCaches): Map<string, Float32Array> {
+  const key = selected.map((w) => w.id).join('|');
+  if (caches.heat?.key !== key) {
+    const heat = new HeatGrid();
+    for (const w of selected) heat.add(w);
+    caches.heat = { key, values: new Map(selected.map((w) => [w.id, heat.series(w)])) };
+  }
+  return caches.heat.values;
+}
+
+export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: LayoutOptions, caches: SceneCaches = {}): Scene {
   const matching = filterWorkouts(workouts, filters);
   const geo = opts.geoAnchor ?? null;
   const radialExponent = geo ? 1 : opts.radialExponent;
@@ -179,7 +184,7 @@ export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: 
   }
 
   const selected = placed.map((p) => p.w);
-  const heat = opts.colorMode === 'frequency' ? frequencyValues(selected) : null;
+  const heat = opts.colorMode === 'frequency' ? frequencyValues(selected, caches) : null;
   const tracks = compressRadially(
     placed.map(({ w, local }) => (heat ? { ...local, value: heat.get(w.id)! } : local)),
     radialExponent,

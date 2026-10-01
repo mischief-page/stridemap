@@ -1,25 +1,8 @@
 import { formatHex, interpolate } from 'culori';
 import { round1 as r } from './format';
-import { inkFor, METERS_PER, niceRound, type Units } from './scale';
-
-/**
- * 'total': the running total over the span shown, always rising, "how far
- * I've come". 'monthly': distance per month (per week for short spans), a
- * range of peaks for big training blocks and valleys for breaks.
- */
-export type DistanceShape = 'total' | 'monthly';
-
-export interface DistanceStyle {
-  shape: DistanceShape;
-  /** Overall strength, 0–1; the fill is fainter than its top edge. */
-  strength: number;
-  /**
-   * Milestones: level lines cut through the fill as thin gaps, each with a
-   * tiny label ("500 mi" where the running total passes it; "50 mi/mo", or
-   * "/wk" for short spans, for distance per period).
-   */
-  markers: boolean;
-}
+import { inkFor } from './ink';
+import { niceRound } from './scale';
+import { METERS_PER, type DistanceStyle, type Units } from './style';
 
 /** A workout on the timeline: start time (Unix ms) and GPS distance (m). */
 export interface TimelinePoint {

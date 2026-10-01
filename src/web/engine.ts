@@ -1,6 +1,6 @@
 import type { Filters, LayoutOptions } from '../core/pipeline';
-import type { MapRequest } from '../render/settings';
-import type { StyleOptions } from '../render/svg';
+import type { MapRequest } from '../app/settings';
+import type { StyleOptions } from '../render/style';
 import type { EngineMessage, EngineRequest, MapResult } from './worker';
 // Inlined so the page also works as a single file opened straight from disk.
 import EngineWorker from './worker?worker&inline';

@@ -1,16 +1,13 @@
-import type { MapFeatures } from '../map/tiles';
+import type { MapFeatures } from '../core/types';
+
+/** The credit the map's data and tiles require, drawn whenever a map is. */
+export const MAP_ATTRIBUTION = '© OpenMapTiles © OpenStreetMap contributors';
 import { round1 as r } from './format';
-import { inkFor } from './scale';
+import { inkFor } from './ink';
+import type { MapStyle } from './style';
 import { simplify } from './simplify';
 
-export interface MapStyle {
-  /** Overall strength of the map, 0–1. */
-  opacity: number;
-  /** null picks white or black to suit the background. */
-  color: string | null;
-}
 
-export const DEFAULT_MAP_STYLE: MapStyle = { opacity: 0.25, color: null };
 
 /** Map detail finer than this many pixels is simplified away. */
 const SIMPLIFY_PX = 0.75;

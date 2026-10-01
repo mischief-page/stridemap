@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_LEGEND, type LegendOptions, DEFAULT_STYLE } from '../src/render/style';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
-import { DEFAULT_LEGEND, formatDateRange, formatStats, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from '../src/render/legend';
-import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
+import { formatDateRange, formatStats, legendHeight, renderLegend, type LegendFacts } from '../src/render/legend';
+import { renderSvg } from '../src/render/svg';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 const frame = { width: 1200, height: 1200, padding: 60, background: '#0b0f19' };

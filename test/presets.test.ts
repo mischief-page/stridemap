@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
-import { findPreset, PRESETS } from '../src/render/presets';
-import { DEFAULT_STATE, LOOK_KEYS, toRenderRequest } from '../src/render/settings';
+import { findPreset, PRESETS } from '../src/app/presets';
+import { DEFAULT_STATE, LOOK_KEYS, toRenderRequest } from '../src/app/settings';
 import { renderSvg } from '../src/render/svg';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { renderDistance } from '../src/render/distance';
-import { DEFAULT_STATE, toRenderRequest } from '../src/render/settings';
+import { DEFAULT_STATE, toRenderRequest } from '../src/app/settings';
 import { renderSvg } from '../src/render/svg';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 

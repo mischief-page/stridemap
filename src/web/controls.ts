@@ -1,5 +1,5 @@
-import { inkFor } from '../render/scale';
-import type { EditorState } from '../render/settings';
+import { inkFor } from '../render/ink';
+import type { EditorState } from '../app/settings';
 
 /**
  * The page's controls, one per setting. Each control's element id is the

@@ -5,7 +5,8 @@ import { buildScene, prepareWorkouts, type Filters, type LayoutOptions } from '.
 import { METERS_PER_DEG_LAT, trackFromPoints, type TrackPoint } from '../src/core/track';
 import { ACTIVITY_TYPES, type LocalTrack, type Workout } from '../src/core/types';
 import { HeatGrid, paceSeries } from '../src/core/values';
-import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
+import { renderSvg } from '../src/render/svg';
+import { DEFAULT_STYLE } from '../src/render/style';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 /** A straight line from (lat, lon) heading `bearing` degrees at `speed` m/s for `seconds`. */

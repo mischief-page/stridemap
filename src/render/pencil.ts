@@ -9,13 +9,6 @@ import { round1 } from './format';
  * graphite grain, which is what makes it read as pencil rather than marker.
  */
 
-export interface PencilOptions {
-  /** How far lines wander from the true route; ~0.5 is careful, ~3 is loose. */
-  roughness: number;
-  /** 0–1: how grainy and broken the strokes look. */
-  grain: number;
-}
-
 const generator = rough.generator();
 
 /**

@@ -1,25 +1,8 @@
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { METERS_PER_DEG_LAT, metersPerDegLon } from '../core/track';
-import type { Bounds } from '../core/types';
+import type { Bounds, MapFeatures } from '../core/types';
 import type { GeoPoint } from './anchor';
-
-/**
- * Street-map features around a point, in the same meters-east/north frame as
- * the routes, from OpenFreeMap's vector tiles (OpenStreetMap data, free for
- * commercial use with attribution). Lines and polygons are flat arrays of
- * x, y pairs.
- */
-export interface MapFeatures {
-  water: Float32Array[][];
-  parks: Float32Array[][];
-  rivers: Float32Array[];
-  majorRoads: Float32Array[];
-  minorRoads: Float32Array[];
-  paths: Float32Array[];
-}
-
-export const MAP_ATTRIBUTION = '© OpenMapTiles © OpenStreetMap contributors';
 
 const TILEJSON = 'https://tiles.openfreemap.org/planet';
 const MAJOR = new Set(['motorway', 'trunk', 'primary', 'secondary']);
@@ -27,6 +10,8 @@ const MINOR = new Set(['tertiary', 'minor', 'service', 'residential', 'unclassif
 const PATHS = new Set(['path', 'track', 'pedestrian', 'footway', 'cycleway', 'steps']);
 /** Most tiles fetched for one picture; a larger area uses a coarser zoom. */
 const MAX_TILES = 144;
+
+export type { MapFeatures };
 
 export const emptyFeatures = (): MapFeatures => ({ water: [], parks: [], rivers: [], majorRoads: [], minorRoads: [], paths: [] });
 

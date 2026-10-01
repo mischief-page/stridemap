@@ -48,3 +48,18 @@ export interface LocalTrack {
   /** Extent of x and y, including the anchor at (0, 0). */
   bbox: Bounds;
 }
+
+/**
+ * Street-map features around a point, in the same meters-east/north frame as
+ * the routes, from map tiles. Lines and polygons are flat arrays of
+ * x, y pairs.
+ */
+export interface MapFeatures {
+  water: Float32Array[][];
+  parks: Float32Array[][];
+  rivers: Float32Array[];
+  majorRoads: Float32Array[];
+  minorRoads: Float32Array[];
+  paths: Float32Array[];
+}
+

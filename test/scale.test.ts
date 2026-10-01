@@ -3,7 +3,8 @@ import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { METERS_PER_DEG_LAT, trackFromPoints } from '../src/core/track';
 import type { Workout } from '../src/core/types';
 import { formatDistance, niceRound } from '../src/render/scale';
-import { DEFAULT_STYLE as LANDSCAPE, renderSvg } from '../src/render/svg';
+import { renderSvg } from '../src/render/svg';
+import { DEFAULT_STYLE as LANDSCAPE } from '../src/render/style';
 
 // A square canvas keeps the arithmetic below simple.
 const DEFAULT_STYLE = { ...LANDSCAPE, width: 1200, height: 1200 };

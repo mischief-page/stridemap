@@ -1,5 +1,5 @@
-import { DEFAULT_TITLE, PRESETS, type Preset } from '../render/presets';
-import { LOOK_KEYS, toRenderRequest, type EditorState } from '../render/settings';
+import { DEFAULT_TITLE, PRESETS, type Preset } from '../app/presets';
+import { LOOK_KEYS, toRenderRequest, type EditorState } from '../app/settings';
 import { readState, refresh, watchControls, writeState } from './controls';
 import { createEngine } from './engine';
 import { NO_ROUTES } from './messages';

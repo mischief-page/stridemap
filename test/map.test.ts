@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { metersPerDegLon } from '../src/core/track';
 import { detectHome } from '../src/map/anchor';
-import { mapScene } from '../src/map/scene';
+import { PosterEngine } from '../src/app/poster';
 import { geocode } from '../src/map/geocode';
-import { decodeTile, emptyFeatures, MAP_ATTRIBUTION, MapLoader, tilesFor } from '../src/map/tiles';
-import { DEFAULT_STATE, parseLatLon, toRenderRequest } from '../src/render/settings';
-import { renderSvg, visibleMeters } from '../src/render/svg';
+import { decodeTile, emptyFeatures, MapLoader, tilesFor } from '../src/map/tiles';
+import { MAP_ATTRIBUTION } from '../src/render/map';
+import { DEFAULT_STATE, parseLatLon, toRenderRequest } from '../src/app/settings';
+import { renderSvg } from '../src/render/svg';
+import { visibleMeters } from '../src/render/frame';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 import { makeTile } from './mvt';
@@ -20,6 +22,11 @@ const TILE = makeTile({
   ],
   water: [{ type: 3, props: {}, points: [[100, 100], [1000, 100], [1000, 1000], [100, 1000]] }],
 });
+
+/** A map loader whose every tile is TILE, so maps always load in tests. */
+const fakeMaps = () =>
+  new MapLoader((async (url: string) =>
+    url.endsWith('/planet') ? new Response(JSON.stringify({ tiles: ['https://tiles.example/{z}/{x}/{y}.pbf'] })) : new Response(TILE)) as unknown as typeof fetch);
 
 // Tile 14/4202/6078 holds this point (near the middle of it).
 const Z = 14, TX = 4202, TY = 6078;
@@ -196,12 +203,13 @@ describe('map settings and drawing', () => {
     expect(scene.geoAnchor!.elsewhereDrawn).toBe(scene.geoAnchor!.elsewhere);
   });
 
-  it('draws routes from elsewhere where they went, only if they cross the picture, fitting to the local ones', () => {
-    const state = { ...DEFAULT_STATE, underlay: 'map' as const };
-    const { filters, layout, style } = toRenderRequest(state);
-    const build = (f: typeof filters, l: typeof layout) => buildScene(prepared, f, l);
-    const omit = mapScene(build, filters, layout, style, home, 'omit');
-    const scene = mapScene(build, filters, layout, style, home, 'true');
+  it('draws routes from elsewhere where they went, only if they cross the picture, fitting to the local ones', async () => {
+    const { filters, layout, style } = toRenderRequest({ ...DEFAULT_STATE, underlay: 'map' });
+    const engine = new PosterEngine(prepared, fakeMaps());
+    const draw = async (others: 'omit' | 'true') => (await engine.render({ filters, layout, style, map: { at: home, others } })).scene;
+    const omit = await draw('omit');
+    const scene = await draw('true');
+    expect(scene.geoAnchor).not.toBeNull();
     const g = scene.geoAnchor!;
     // The nearby "work" routes (~5 km away) cross the picture; trips to another state don't.
     expect(g.elsewhereDrawn).toBeGreaterThan(0);

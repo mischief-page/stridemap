@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
 import { ACTIVITY_TYPES } from '../src/core/types';
 import { pencilPath } from '../src/render/pencil';
-import { DEFAULT_STYLE, renderSvg } from '../src/render/svg';
+import { renderSvg } from '../src/render/svg';
+import { DEFAULT_STYLE } from '../src/render/style';
 import { syntheticWorkouts } from '../src/sample/synthetic';
 
 const d = 'M10 10L200 10L200 150L40 150';

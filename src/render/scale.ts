@@ -1,16 +1,6 @@
-import { wcagLuminance } from 'culori';
+import { inkFor } from './ink';
+import { METERS_PER, type ScaleStyle, type Units } from './style';
 import { round1 as r } from './format';
-
-export type Units = 'km' | 'mi';
-
-/**
- * 'bar' is a classic scale bar; 'rings' draws distance circles around the
- * anchor. When long routes are squashed, distance from the anchor is no longer
- * linear, so a bar would be wrong and rings are drawn instead.
- */
-export type ScaleStyle = 'bar' | 'rings' | 'off';
-
-export const METERS_PER: Record<Units, number> = { km: 1000, mi: 1609.344 };
 
 /** Frame the scale is drawn in: pixels per meter and the anchor's screen position. */
 export interface ScaleFrame {
@@ -44,11 +34,6 @@ export function niceRound(value: number): number {
 export function formatDistance(amount: number, units: Units): string {
   if (units === 'km' && amount < 1) return `${Math.round(amount * 1000)} m`;
   return `${+amount.toPrecision(3)} ${units}`;
-}
-
-/** The automatic scale color: light ink on dark backgrounds, dark ink on light ones. */
-export function inkFor(background: string): string {
-  return wcagLuminance(background) > 0.4 ? '#000000' : '#ffffff';
 }
 
 /** Squashed routes need rings: a straight bar can't be accurate when distance isn't linear. */

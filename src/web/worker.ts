@@ -1,14 +1,11 @@
 /// <reference lib="webworker" />
 import { Reader } from '@zip.js/zip.js';
-import { buildScene, prepareWorkouts, type Filters, type LayoutOptions, type OtherStarts, type PreparedWorkout, type Scene } from '../core/pipeline';
+import { prepareWorkouts } from '../core/pipeline';
 import type { Workout } from '../core/types';
 import { readExport, type Progress } from '../parse/import';
-import { renderSvg, visibleMeters, type StyleOptions } from '../render/svg';
-import type { MapRequest } from '../render/settings';
-import { detectHome, type GeoPoint } from '../map/anchor';
-import { mapScene } from '../map/scene';
+import { PosterEngine, type MapResult, type PosterRequest } from '../app/poster';
+import { MapLoader } from '../map/tiles';
 import { NO_ROUTES } from './messages';
-import { MapLoader, type MapFeatures } from '../map/tiles';
 import { syntheticWorkouts } from '../sample/synthetic';
 
 /**
@@ -23,12 +20,9 @@ export type EngineRequest =
   | { kind: 'load-file'; load: number; size: number }
   | { kind: 'chunk'; id: number; buffer: ArrayBuffer }
   | { kind: 'load-sample'; load: number }
-  | { kind: 'render'; seq: number; filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null };
+  | ({ kind: 'render'; seq: number } & PosterRequest);
 
-/** How the map went: where it's centred, how many routes are on it, or why it isn't shown. */
-export type MapResult =
-  | { ok: true; at: GeoPoint; detected: boolean; others: OtherStarts; near: number; elsewhere: number; elsewhereDrawn: number }
-  | { ok: false; reason: 'no-point' | 'no-routes' | 'offline'; message?: string };
+export type { MapResult };
 
 export type EngineMessage =
   | { kind: 'read'; load: number; id: number; offset: number; length: number }
@@ -37,13 +31,10 @@ export type EngineMessage =
   | { kind: 'rendered'; seq: number; svg: string; width: number; height: number; shown: number; withGps: number; map: MapResult | null }
   | { kind: 'error'; message: string; during: 'load' | 'render' };
 
-// Only the prepared form is kept; the raw GPS tracks are freed after loading.
-let workouts: PreparedWorkout[] = [];
-// Style-only changes (colors, legend, scale…) reuse the last scene.
-let sceneCache: { key: string; scene: Scene } | null = null;
-// The most common start, found once per data set.
-let home: ReturnType<typeof detectHome> | undefined;
+// Draws from the workouts loaded last (only their prepared form is kept; the
+// raw GPS tracks are freed). Map tiles are kept across data sets.
 const mapLoader = new MapLoader();
+let engine = new PosterEngine([], mapLoader);
 
 const post = (msg: EngineMessage) => self.postMessage(msg);
 
@@ -81,21 +72,19 @@ function loaded(list: Workout[], load: number) {
   const prepared = prepareWorkouts(list);
   // An export with nothing to draw leaves the data already loaded in place.
   if (!prepared.length) throw new Error(NO_ROUTES);
-  workouts = prepared;
-  sceneCache = null;
-  home = undefined;
+  engine = new PosterEngine(prepared, mapLoader);
   let first = Infinity;
   let last = -Infinity;
-  for (const w of workouts) {
+  for (const w of prepared) {
     first = Math.min(first, w.start);
     last = Math.max(last, w.start);
   }
   post({
     kind: 'loaded',
     load,
-    withGps: workouts.length,
-    firstStart: workouts.length ? first : null,
-    lastStart: workouts.length ? last : null,
+    withGps: prepared.length,
+    firstStart: first,
+    lastStart: last,
   });
 }
 
@@ -117,8 +106,8 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
       currentLoad = load;
       loaded(syntheticWorkouts(), load);
     } else {
-      const { svg, scene, map } = await draw(req.filters, req.layout, req.style, req.map);
-      post({ kind: 'rendered', seq: req.seq, svg, width: req.style.width, height: req.style.height, shown: scene.workoutCount, withGps: workouts.length, map });
+      const { svg, scene, map } = await engine.render(req);
+      post({ kind: 'rendered', seq: req.seq, svg, width: req.style.width, height: req.style.height, shown: scene.workoutCount, withGps: engine.workouts.length, map });
     }
   } catch (err) {
     // A replaced load's failure (often caused by being replaced) isn't news.
@@ -126,41 +115,3 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
     post({ kind: 'error', message: err instanceof Error ? err.message : String(err), during });
   }
 };
-
-const pick = ({ near, elsewhere, elsewhereDrawn }: NonNullable<Scene['geoAnchor']>) => ({ near, elsewhere, elsewhereDrawn });
-
-function sceneFor(filters: Filters, layout: LayoutOptions): Scene {
-  const key = JSON.stringify([filters, layout]);
-  if (sceneCache?.key !== key) sceneCache = { key, scene: buildScene(workouts, filters, layout) };
-  return sceneCache.scene;
-}
-
-/**
- * Draws the picture, with the map behind it when asked for. With a map the
- * routes are placed in their true position around its point; if the map
- * can't be drawn, the routes are drawn as usual and the reason is reported.
- */
-async function draw(filters: Filters, layout: LayoutOptions, style: StyleOptions, map: MapRequest | null) {
-  const plain = () => sceneFor(filters, layout);
-  if (!map) return { svg: renderSvg(plain(), style), scene: plain(), map: null };
-  if (map.at === 'detected' && home === undefined) home = detectHome(workouts.map((w) => ({ lat: w.lat[0]!, lon: w.lon[0]! })));
-  const at = map.at === 'detected' ? home : map.at;
-  const fail = (reason: 'no-point' | 'no-routes' | 'offline', message?: string) => {
-    const scene = plain();
-    return { svg: renderSvg(scene, style), scene, map: { ok: false as const, reason, message } };
-  };
-  if (!at) return fail('no-point');
-  const scene = mapScene(sceneFor, filters, layout, style, at, map.others);
-  if (!scene.geoAnchor!.near) return fail('no-routes');
-  let features: MapFeatures;
-  try {
-    features = await mapLoader.load({ lat: at.lat, lon: at.lon }, visibleMeters(scene, style));
-  } catch (err) {
-    return fail('offline', err instanceof Error ? err.message : String(err));
-  }
-  return {
-    svg: renderSvg(scene, style, features),
-    scene,
-    map: { ok: true as const, at: { lat: at.lat, lon: at.lon }, detected: map.at === 'detected', others: map.others, ...pick(scene.geoAnchor!) },
-  };
-}
