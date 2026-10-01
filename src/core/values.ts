@@ -69,18 +69,18 @@ function fillGaps(values: Float64Array): Float64Array {
   return values;
 }
 
-/**
- * Counts how many distinct workouts passed through each cell of a real-world
- * grid. Cells are measured on the ground, not in the anchored drawing, so a
- * street is "hot" when it was actually visited often, wherever the workouts
- * started.
- */
 /** Just the positions of a track: all the visit grid needs. */
 export interface LatLon {
   lat: Float64Array;
   lon: Float64Array;
 }
 
+/**
+ * Counts how many distinct workouts passed through each cell of a real-world
+ * grid. Cells are measured on the ground, not in the anchored drawing, so a
+ * street is "hot" when it was actually visited often, wherever the workouts
+ * started.
+ */
 export class HeatGrid {
   /** Workouts per cell, keyed by a single number packed from the cell's column and row. */
   private counts = new Map<number, number>();
@@ -89,11 +89,14 @@ export class HeatGrid {
 
   constructor(private readonly cellM = 15) {}
 
+  /** The last row's meters per degree of longitude: consecutive points are almost always in the same row. */
+  private row = { cy: NaN, mLon: 0 };
+
   private cellOf(lat: number, lon: number): number {
     const cy = Math.floor((lat * METERS_PER_DEG_LAT) / this.cellM);
     // Use the latitude of the cell's own row so the column width is stable.
-    const rowLat = ((cy + 0.5) * this.cellM) / METERS_PER_DEG_LAT;
-    const cx = Math.floor((lon * metersPerDegLon(rowLat)) / this.cellM);
+    if (cy !== this.row.cy) this.row = { cy, mLon: metersPerDegLon(((cy + 0.5) * this.cellM) / METERS_PER_DEG_LAT) };
+    const cx = Math.floor((lon * this.row.mLon) / this.cellM);
     return pack(cx, cy);
   }
 

@@ -1,9 +1,7 @@
 import { flatDistance, METERS_PER_DEG_LAT, metersPerDegLon } from '../core/track';
+import type { GeoPoint } from '../core/types';
 
-export interface GeoPoint {
-  lat: number;
-  lon: number;
-}
+export type { GeoPoint };
 
 /** How close a route's start must be to the map's point to be drawn on the map. */
 export const NEAR_RADIUS_M = 300;

@@ -173,7 +173,7 @@ describe('geocode', () => {
 
 describe('map settings and drawing', () => {
   const prepared = prepareWorkouts(syntheticWorkouts());
-  const home = detectHome(prepared.map((w) => ({ lat: w.lat[0]!, lon: w.lon[0]! })))!;
+  const home = detectHome(prepared.map((w) => w.origin))!;
 
   it('asks for the map only when it is on', () => {
     expect(toRenderRequest(DEFAULT_STATE).map).toBeNull();

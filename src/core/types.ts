@@ -28,6 +28,12 @@ export interface Workout {
   track: Track | null;
 }
 
+/** A place on Earth, in degrees. */
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+}
+
 export interface Bounds {
   minX: number;
   maxX: number;

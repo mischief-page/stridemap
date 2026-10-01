@@ -1,4 +1,4 @@
-import { METERS_PER_DEG_LAT, metersPerDegLon } from './track';
+import { projectAround } from './track';
 import type { Bounds, LocalTrack, Track } from './types';
 
 /**
@@ -7,21 +7,12 @@ import type { Bounds, LocalTrack, Track } from './types';
  * scale. The absolute location is discarded here.
  */
 export function anchorTrack(track: Track): { x: Float32Array; y: Float32Array; bbox: Bounds } {
-  const n = track.t.length;
-  const x = new Float32Array(n);
-  const y = new Float32Array(n);
-  if (n === 0) return { x, y, bbox: { minX: 0, maxX: 0, minY: 0, maxY: 0 } };
-  const lat0 = track.lat[0]!;
-  const lon0 = track.lon[0]!;
-  const mPerDegLon = metersPerDegLon(lat0);
-  for (let i = 0; i < n; i++) {
-    x[i] = (track.lon[i]! - lon0) * mPerDegLon;
-    y[i] = (track.lat[i]! - lat0) * METERS_PER_DEG_LAT;
-  }
+  if (track.t.length === 0) return { x: new Float32Array(0), y: new Float32Array(0), bbox: { minX: 0, maxX: 0, minY: 0, maxY: 0 } };
+  const { x, y } = projectAround(track.lat, track.lon, { lat: track.lat[0]!, lon: track.lon[0]! });
   return { x, y, bbox: extent(x, y) };
 }
 
-/** Extent of a track's points, always including the anchor at (0, 0). */
+/** Extent of a track's points (for an anchored track, the first point is the anchor at (0, 0)). */
 export function extent(x: Float32Array, y: Float32Array): Bounds {
   // Starts from the first point (the anchor, for an anchored route), not the origin.
   if (!x.length) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };

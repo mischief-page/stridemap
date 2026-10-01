@@ -66,7 +66,7 @@ export class PosterEngine {
 
   /** The most common start, worked out once. */
   homePoint(): GeoPoint | null {
-    this.home ??= detectHome(this.workouts.map((w) => ({ lat: w.lat[0]!, lon: w.lon[0]! })));
+    this.home ??= detectHome(this.workouts.map((w) => w.origin));
     return this.home;
   }
 

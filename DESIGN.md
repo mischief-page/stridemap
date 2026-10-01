@@ -134,7 +134,7 @@ The title also becomes the SVG's `<title>`. All user text is XML-escaped.
 A person's history can be thousands of workouts and millions of GPS points, so:
 - **All heavy work runs in a Web Worker** that holds the workouts. The page only sends settings and receives SVG. While a redraw is running, only the newest settings are kept, so dragging a slider never queues stale frames.
 - **Work is cached at the level it depends on**:
-  - per workout, computed once: GPS cleanup, anchored shape, pace
+  - per workout, computed once: GPS cleanup, anchored shape, pace. Only the start point is kept besides the anchored shape; real-world positions are worked back out from them when needed (exact to well under a millimeter), so positions aren't stored twice
   - per selection (filters): the real-world visit grid and each workout's visit values
   - per filters + layout: the scene (fit, squash, color range)
   - per scene + route style: the drawn routes, so legend and scale edits don't redraw them

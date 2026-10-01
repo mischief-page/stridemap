@@ -1,8 +1,8 @@
 import { cleanTrack } from './clean';
 import { anchorTrack, compressRadially, extent, fitBounds, quantiles } from './layout';
-import { flatDistance, METERS_PER_DEG_LAT, metersPerDegLon } from './track';
+import { flatDistance, projectAround, unprojectFrom } from './track';
 import { HeatGrid, paceSeries } from './values';
-import type { ActivityType, Bounds, LocalTrack, Track, Workout } from './types';
+import type { ActivityType, Bounds, GeoPoint, LocalTrack, Track, Workout } from './types';
 
 export const COLOR_MODES = ['pace', 'frequency'] as const;
 export type ColorMode = (typeof COLOR_MODES)[number];
@@ -79,17 +79,19 @@ export interface Scene {
 
 /**
  * An outdoor workout reduced to what drawing needs, computed once when data is
- * loaded: the cleaned positions (for the real-world visit grid), the anchored
- * shape with its pace values and extent, and the distance. The raw GPS track
- * (timestamps, accuracy, reported speed) can then be dropped, which cuts memory
- * by about two thirds for large histories.
+ * loaded: where it started, the anchored shape with its pace values and
+ * extent, and the distance. Real-world positions (for the visit grid and the
+ * street map) are worked back out from the shape and the start when needed,
+ * so they aren't stored twice. The raw GPS track (timestamps, accuracy,
+ * reported speed) is dropped, which cuts memory by about four fifths for
+ * large histories.
  */
 export interface PreparedWorkout {
   id: string;
   type: ActivityType;
   start: number;
-  lat: Float64Array;
-  lon: Float64Array;
+  /** Where the workout started. */
+  origin: GeoPoint;
   /** Anchored shape in meters from the start, with pace values and extent. */
   local: LocalTrack;
   distanceM: number;
@@ -118,8 +120,7 @@ export function prepareWorkouts(workouts: Workout[]): PreparedWorkout[] {
       id: copies === 1 ? w.id : `${w.id}#${copies}`,
       type: w.type,
       start: w.start,
-      lat: track.lat,
-      lon: track.lon,
+      origin: { lat: track.lat[0]!, lon: track.lon[0]! },
       local: { ...anchorTrack(track), value },
       distanceM: trackDistance(track),
     });
@@ -149,8 +150,8 @@ function frequencyValues(selected: PreparedWorkout[], caches: SceneCaches): Map<
   const key = selected.map((w) => w.id).join('|');
   if (caches.heat?.key !== key) {
     const heat = new HeatGrid();
-    for (const w of selected) heat.add(w);
-    caches.heat = { key, values: new Map(selected.map((w) => [w.id, heat.series(w)])) };
+    for (const w of selected) heat.add(positionsOf(w));
+    caches.heat = { key, values: new Map(selected.map((w) => [w.id, heat.series(positionsOf(w))])) };
   }
   return caches.heat.values;
 }
@@ -169,7 +170,7 @@ export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: 
   } else {
     placed = [];
     for (const w of matching) {
-      const near = flatDistance(geo.lat, geo.lon, w.lat[0]!, w.lon[0]!) <= geo.radiusM;
+      const near = flatDistance(geo.lat, geo.lon, w.origin.lat, w.origin.lon) <= geo.radiusM;
       if (near) nearCount++;
       if (near || geo.others === 'true') placed.push({ w, local: placeAround(w, geo), near });
       else if (geo.others === 'anchored') placed.push({ w, local: w.local, near });
@@ -222,16 +223,15 @@ export function buildScene(workouts: PreparedWorkout[], filters: Filters, opts: 
 
 const overlaps = (a: Bounds, b: Bounds) => a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
 
+/** A workout's real-world positions, worked back out from its shape and start. */
+export function positionsOf(w: PreparedWorkout): { lat: Float64Array; lon: Float64Array } {
+  return unprojectFrom(w.local.x, w.local.y, w.origin);
+}
+
 /** A route in meters east and north of a real-world point, rather than of its own start. */
-function placeAround(w: PreparedWorkout, at: { lat: number; lon: number }): LocalTrack {
-  const n = w.lat.length;
-  const x = new Float32Array(n);
-  const y = new Float32Array(n);
-  const mLon = metersPerDegLon(at.lat);
-  for (let i = 0; i < n; i++) {
-    x[i] = (w.lon[i]! - at.lon) * mLon;
-    y[i] = (w.lat[i]! - at.lat) * METERS_PER_DEG_LAT;
-  }
+function placeAround(w: PreparedWorkout, at: GeoPoint): LocalTrack {
+  const { lat, lon } = positionsOf(w);
+  const { x, y } = projectAround(lat, lon, at);
   return { x, y, value: w.local.value, bbox: extent(x, y) };
 }
 
