@@ -151,7 +151,7 @@ export function refresh(): void {
   byId('distanceFields').hidden = s.underlay !== 'distance';
   byId('underlayStrengthField').hidden = s.underlay === 'none';
   byId('underlayHint').textContent = {
-    none: 'Nothing behind the routes.',
+    none: 'No background, just the routes.',
     map: 'A faint street map. Best when most routes start from the same place: those are drawn where they really went.',
     distance: 'A faint chart of the distance you covered over the dates shown.',
   }[s.underlay];
