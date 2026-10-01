@@ -18,20 +18,40 @@ function thumbnail({ look }: Preset): string {
 <rect x="${textX}" y="${textY}" width="20" height="3" fill="${inkFor(look.background)}" opacity="0.8"/></svg>`;
 }
 
-/** Builds a card per preset; returns a function that marks the active one (null for custom). */
+/**
+ * Builds a card per preset; returns a function that marks the active one (null
+ * for custom). The cards behave as one radio group: one Tab stop, arrow keys
+ * move between them and pick.
+ */
 export function presetCards(container: HTMLElement, onPick: (p: Preset) => void): (id: string | null) => void {
-  for (const p of PRESETS) {
+  const cards = PRESETS.map((p) => {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'preset-card';
     card.dataset.id = p.id;
     card.setAttribute('role', 'radio');
+    card.setAttribute('aria-label', `${p.name}: ${p.description}`);
     card.title = p.description;
     card.innerHTML = `${thumbnail(p)}<span>${p.name}</span>`;
     card.addEventListener('click', () => onPick(p));
     container.append(card);
-  }
+    return card;
+  });
+  container.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const at = cards.indexOf(document.activeElement as HTMLButtonElement);
+    const next = (Math.max(0, at) + step + cards.length) % cards.length;
+    cards[next]!.focus();
+    onPick(PRESETS[next]!);
+  });
   return (id) => {
-    for (const card of container.children) card.setAttribute('aria-checked', String(card.getAttribute('data-id') === id));
+    const active = Math.max(0, cards.findIndex((c) => c.dataset.id === id));
+    cards.forEach((card, i) => {
+      card.setAttribute('aria-checked', String(card.dataset.id === id));
+      // With no preset chosen (custom), the first card takes the Tab stop.
+      card.tabIndex = i === active ? 0 : -1;
+    });
   };
 }

@@ -63,7 +63,7 @@ An optional hand-drawn look. [Rough.js](https://roughjs.com/) (MIT) redraws each
 ### Distance scale
 So viewers can judge how long routes are, the image carries a distance scale in km or miles (the web app defaults to miles for US, Liberia and Myanmar locales):
 - **Bar** (default): bottom-left, about a fifth of the drawing wide, rounded to the nearest 1, 2 or 5 × 10ⁿ.
-- **Distance rings**: dashed circles around the anchor at tidy distances, labelled.
+- **Distance rings**: dashed circles around the anchor at tidy distances, labelled along the quietest of 16 directions (the one with the fewest routes near its line), so the labels aren't drawn over.
 - **None**.
 
 When long routes are squashed, distance from the anchor is no longer linear and a bar would be wrong, so rings are drawn instead, spaced by the same squash as the routes. The scale color can be chosen; by default it is white or black depending on how light the background is. Labels always get a halo in the background color.
@@ -94,7 +94,7 @@ For people whose routes mostly start from the same place (home), a translucent s
 - **Offline or failed:** routes are drawn as usual, without the map, and the page says so.
 
 ### Style presets
-Five finished looks someone can pick and be happy with, shown as cards at the top of the editor. The page opens on Afterglow. Each is an 18×24 in portrait poster (the size competitors and our catalog center on) with "How often" coloring, the legend in its own band, and totals plus dates under the title.
+Five finished looks someone can pick and be happy with, shown as cards at the top of the editor, with the title and name fields right under them. The page opens on Afterglow, showing an example poster made from the sample data (labelled as an example) until someone loads their own export. Each is an 18×24 in portrait poster (the size competitors and our catalog center on) with "How often" coloring, the legend in its own band, and totals plus dates under the title.
 
 | Preset | Look | Legend |
 | --- | --- | --- |
@@ -115,10 +115,20 @@ Formatting and placement:
 - Size (50–200%), color (automatic white/black to suit the background, or chosen), and the title optionally in spaced capitals.
 - Backdrop: a halo in the background color, a translucent panel, or none. The SVG can't measure text, so the panel width is estimated from the character count.
 
+- Color key: an optional small gradient bar between the words "rarely" and "often" (or "slower" and "faster" for pace), so viewers know what the colors mean. Presets turn it on.
 - Totals: an optional line such as "412 runs · 2,318 mi" (GPS distance of the workouts drawn, in the chosen units; mixed types read "walks & runs" or "activities"). It shares the last line with the dates.
-- Text band: optionally the legend gets its own band at the top or bottom (its height plus 1.5× the padding), and the routes are fitted into, and clipped to, the rest of the canvas, so they never run under the text.
+- Text band: optionally the legend gets its own band at the top or bottom (its height plus 1.5× the padding), and the routes are fitted into, and clipped to, the rest of the canvas, so they never run under the text. The routes fade out over the last 5% of the art next to the band rather than stopping at a hard edge.
+- Scale labels use the legend's font, so the poster's type matches.
 
 The title also becomes the SVG's `<title>`. All user text is XML-escaped.
+
+## The page
+- **First visit:** the page opens on an example poster from the sample data, with a badge saying so and a "Use my export" button, so there's something to look at and play with straight away. The how-to for getting an export (Apple Health on iPhone, including *Save to Files*; Strava's archive) is open until the person's own data loads.
+- **Loading:** a progress overlay on the poster shows the stage and how far through it is. The previous data stays loaded until the new file succeeds, so a bad file never leaves the page stuck. Files that aren't zips are refused before reading; errors are worded as next steps and shown as an alert, not as status text.
+- **Controls:** Your data, then Style (open, with the title and name), then Workouts, Colors, Lines, Text, Size & scale, and Behind the routes, all collapsible. Sliders with internal numbers say what their ends mean ("Zoom in" ↔ "Every route"). The color labels follow the mode (Slow/Fast or Rarely/Often). Typing a title or name turns the text on.
+- **Layout:** the poster stays in view while the controls scroll (sticky beside them on wide screens, pinned to the top on phones). On touch screens the drop zone says "Choose your export zip".
+- **Downloads:** PNG for sharing (2× the image) or for printing (as large as browsers reliably draw: about 16.7 million pixels, Safari's canvas limit; the option says how large it prints sharply at 300 ppi), and SVG. Files are named after the title and style, e.g. `my-workouts-afterglow.png`.
+- **Accessibility:** the file input is visually hidden but focusable; the style cards are one radio group (arrow keys move and pick); help text is linked with `aria-describedby`; the preview's alt text names the poster and how many workouts it shows.
 
 ## Performance
 A person's history can be thousands of workouts and millions of GPS points, so:

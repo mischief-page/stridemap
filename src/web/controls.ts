@@ -49,6 +49,7 @@ const CONTROLS: { [K in keyof EditorState]: Kind } = {
   legendShow: 'checkbox',
   showDates: 'checkbox',
   showStats: 'checkbox',
+  legendKey: 'checkbox',
   dateFormat: 'value',
   textBand: 'checkbox',
   legendPosition: 'value',
@@ -63,7 +64,7 @@ const KEYS = Object.keys(CONTROLS) as (keyof EditorState)[];
 
 /** Value labels shown beside sliders. */
 const LABELS: Partial<{ [K in keyof EditorState]: (v: EditorState[K]) => string }> = {
-  fit: (v) => `${v}%`,
+  fit: (v) => (v === 100 ? 'every route' : `${v}% of routes`),
   squash: (v) => String(v),
   strokeWidth: (v) => String(v),
   opacity: (v) => String(v),
@@ -142,6 +143,9 @@ export function refresh(): void {
     byId(`${key}Out`).textContent = label(s[key]);
   }
   byId('pencilFields').hidden = s.lineStyle !== 'pencil';
+  // The two color ends say what they mean in the chosen mode.
+  byId('colorALabel').textContent = s.colorMode === 'pace' ? 'Slow' : 'Rarely';
+  byId('colorBLabel').textContent = s.colorMode === 'pace' ? 'Fast' : 'Often';
   byId<HTMLFieldSetElement>('legendFields').disabled = !s.legendShow;
   byId('mapFields').hidden = s.underlay !== 'map';
   byId('distanceFields').hidden = s.underlay !== 'distance';

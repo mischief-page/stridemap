@@ -4,7 +4,7 @@ import type { Bounds } from '../core/types';
 import { renderMark } from './brand';
 import { canvasSize } from './canvas';
 import { round1 as r } from './format';
-import { DEFAULT_LEGEND, escapeXml, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from './legend';
+import { DEFAULT_LEGEND, escapeXml, LEGEND_FONTS, legendHeight, renderLegend, type LegendFacts, type LegendOptions } from './legend';
 import { renderScale, scaleUsesRings, type ScaleStyle, type Units } from './scale';
 import { pencilFilter, pencilPath, type PencilOptions } from './pencil';
 import { catmullRomControls, smoothPolyline } from './smooth';
@@ -77,6 +77,20 @@ export const DEFAULT_STYLE: StyleOptions = {
 };
 
 const GRAIN_FILTER_ID = 'stridemap-pencil-grain';
+const FADE_ID = 'stridemap-band-fade';
+/** How much of the art's height the fade into the text band takes. */
+const FADE_SHARE = 0.05;
+
+/** A mask that fades the art out toward the text band's side. */
+function bandFade(width: number, top: number, height: number, side: 'top' | 'bottom'): { defs: string } {
+  const f = FADE_SHARE;
+  const stops = side === 'bottom'
+    ? `<stop offset="0" stop-color="#fff"/><stop offset="${1 - f}" stop-color="#fff"/><stop offset="1" stop-color="#000"/>`
+    : `<stop offset="0" stop-color="#000"/><stop offset="${f}" stop-color="#fff"/><stop offset="1" stop-color="#fff"/>`;
+  return {
+    defs: `<defs><linearGradient id="${FADE_ID}-g" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${r(top)}" y2="${r(top + height)}">${stops}</linearGradient><mask id="${FADE_ID}" maskUnits="userSpaceOnUse" x="0" y="${r(top)}" width="${width}" height="${r(height)}"><rect x="0" y="${r(top)}" width="${width}" height="${r(height)}" fill="url(#${FADE_ID}-g)"/></mask></defs>`,
+  };
+}
 
 /**
  * Number of color steps. Segments are grouped by step into one <path> each,
@@ -144,12 +158,14 @@ export function visibleMeters(scene: Scene, style: StyleOptions): Bounds {
 
 export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFeatures | null): string {
   const { width: W, height: H, padding: P } = style;
-  const frame = { width: W, height: H, padding: P, background: style.background };
+  const frame = { width: W, height: H, padding: P, background: style.background, colors: [style.colorA, style.colorB] as [string, string] };
   const facts = legendFacts(scene, style);
   const { artTop, artH, scale, ox, oy } = artFrame(scene, style);
   const map = style.map && mapFeatures ? { style: style.map, features: mapFeatures } : null;
 
   const body = drawRoutes(scene, style, scale, ox, oy);
+  // With a text band, routes fade out just before it instead of stopping at a hard edge.
+  const fade = artH < H ? bandFade(W, artTop, artH, artTop > 0 ? 'top' : 'bottom') : null;
   // Keep the scale bar out of the legend's way, and the mark out of the bar's.
   const barSide = style.legend.show && style.legend.position === 'bottom-left' ? 'right' : 'left';
   const barShown = style.scale !== 'off' && !scaleUsesRings(style.scale, scene.radialExponent);
@@ -166,6 +182,8 @@ export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFe
       radialExponent: scene.radialExponent,
       // Keep the bar out of the legend's way.
       barSide,
+      fontFamily: style.legend.show ? LEGEND_FONTS[style.legend.font] : undefined,
+      ringLabelAngle: scaleUsesRings(style.scale, scene.radialExponent) ? quietestDirection(scene, scale, Math.min(W, H) / 75) : 0,
     },
     style.scale,
     style.units,
@@ -185,9 +203,10 @@ export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFe
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}
 <svg class="art" y="${r(artTop)}" width="${W}" height="${r(artH)}" viewBox="0 ${r(artTop)} ${W} ${r(artH)}">
+${fade ? fade.defs : ''}
 ${style.distance ? renderDistance(scene.timeline, style.distance, { top: artTop, width: W, height: artH, colorA: style.colorA, colorB: style.colorB, background: style.background, padding: P, units: style.units, locale: style.legend.locale }) : ''}
 ${map ? renderMap(map.features, map.style, { scale, ox, oy, top: artTop, width: W, height: artH, background: style.background }) : ''}
-<g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}>
+<g fill="none" stroke-width="${style.strokeWidth}" stroke-opacity="${style.opacity}" stroke-linecap="round" stroke-linejoin="round" style="isolation:isolate"${grain ? ` filter="url(#${GRAIN_FILTER_ID})"` : ''}${fade ? ` mask="url(#${FADE_ID})"` : ''}>
 ${body}
 </g>
 ${rings ? scaleSvg : ''}
@@ -197,6 +216,34 @@ ${renderLegend(frame, style.legend, facts)}
 ${renderMark(frame, markSide, style.mark, map ? MAP_ATTRIBUTION : null)}
 </svg>
 </svg>`;
+}
+
+/**
+ * Of sixteen compass directions from the anchor, the one with the fewest
+ * routes along it, for placing ring labels where they won't be drawn over.
+ * A sample of route points is counted per direction when it lies within a
+ * label's height of that direction's line.
+ */
+function quietestDirection(scene: Scene, scale: number, labelPx: number): number {
+  const N = 16;
+  const dirs = Array.from({ length: N }, (_, k) => [Math.sin((k * 2 * Math.PI) / N), Math.cos((k * 2 * Math.PI) / N)] as const);
+  const counts = new Float64Array(N);
+  for (const t of scene.tracks) {
+    for (let i = 0; i < t.x.length; i += 4) {
+      const x = t.x[i]! * scale;
+      const y = t.y[i]! * scale; // north is +y here
+      for (let k = 0; k < N; k++) {
+        const [dx, dy] = dirs[k]!;
+        const along = x * dx + y * dy;
+        if (along > labelPx && Math.abs(x * dy - y * dx) < labelPx) counts[k]! += 1;
+      }
+    }
+  }
+  // Ties go to directions above the anchor, where labels read most naturally.
+  const order = Array.from({ length: N }, (_, k) => k).sort((a, b) => Math.abs(Math.sin((a * Math.PI) / N)) - Math.abs(Math.sin((b * Math.PI) / N)));
+  let best = order[0]!;
+  for (const k of order) if (counts[k]! < counts[best]! * 0.9) best = k;
+  return (best * 2 * Math.PI) / N;
 }
 
 /**

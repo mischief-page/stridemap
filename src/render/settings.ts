@@ -76,6 +76,8 @@ export interface EditorState {
   legendShow: boolean;
   showDates: boolean;
   showStats: boolean;
+  /** A small gradient key saying what the colors mean. */
+  legendKey: boolean;
   dateFormat: DateFormat;
   textBand: boolean;
   legendPosition: LegendPosition;
@@ -91,7 +93,7 @@ export interface EditorState {
 export const LOOK_KEYS = [
   'colorMode', 'fit', 'squash', 'aspect', 'orientation', 'background', 'colorA', 'colorB', 'blend',
   'strokeWidth', 'opacity', 'smoothing', 'lineStyle', 'roughness', 'grain', 'scale', 'scaleColor',
-  'legendShow', 'showDates', 'showStats', 'dateFormat', 'textBand', 'legendPosition', 'legendFont',
+  'legendShow', 'showDates', 'showStats', 'legendKey', 'dateFormat', 'textBand', 'legendPosition', 'legendFont',
   'legendBackdrop', 'legendSize', 'legendCaps', 'legendColor',
 ] as const satisfies readonly (keyof EditorState)[];
 
@@ -133,6 +135,7 @@ export const DEFAULT_STATE: EditorState = {
   legendShow: false,
   showDates: DEFAULT_LEGEND.showDates,
   showStats: DEFAULT_LEGEND.showStats,
+  legendKey: DEFAULT_LEGEND.colorKey,
   dateFormat: DEFAULT_LEGEND.dateFormat,
   textBand: false,
   legendPosition: DEFAULT_LEGEND.position,
@@ -183,6 +186,8 @@ export function toRenderRequest(
         name: s.name,
         showDates: s.showDates,
         showStats: s.showStats,
+        colorKey: s.legendKey,
+        colorMode: s.colorMode,
         dateFormat: s.dateFormat,
         position: s.legendPosition,
         font: s.legendFont,

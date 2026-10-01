@@ -8,11 +8,11 @@
 let previewSeq = 0;
 let previewUrl = '';
 
-export async function showPreview(container: HTMLElement, svg: string): Promise<boolean> {
+export async function showPreview(container: HTMLElement, svg: string, alt: string): Promise<boolean> {
   const mine = ++previewSeq;
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   const img = new Image();
-  img.alt = 'Preview of your route artwork';
+  img.alt = alt;
   img.src = url;
   try {
     await img.decode();
@@ -36,18 +36,27 @@ function download(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function downloadSvg(svg: string): void {
-  download(new Blob([svg], { type: 'image/svg+xml' }), 'stridemap.svg');
+export function downloadSvg(svg: string, name: string): void {
+  download(new Blob([svg], { type: 'image/svg+xml' }), name);
 }
 
-/** A PNG at twice the image's size, for sharp prints and screens. */
-export async function downloadPng(svg: string, size: { width: number; height: number }): Promise<void> {
-  const scale = 2;
+/** A PNG of the image at `scale` times its size. */
+export async function downloadPng(svg: string, size: { width: number; height: number }, scale: number, name: string): Promise<void> {
   const img = new Image();
   img.src = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-  await img.decode();
-  const canvas = Object.assign(document.createElement('canvas'), { width: size.width * scale, height: size.height * scale });
-  canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-  URL.revokeObjectURL(img.src);
-  canvas.toBlob((blob) => blob && download(blob, 'stridemap.png'), 'image/png');
+  try {
+    await img.decode();
+    const canvas = Object.assign(document.createElement('canvas'), {
+      width: Math.round(size.width * scale),
+      height: Math.round(size.height * scale),
+    });
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('this browser could not make an image that large');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('this browser could not make an image that large');
+    download(blob, name);
+  } finally {
+    URL.revokeObjectURL(img.src);
+  }
 }

@@ -7,6 +7,7 @@ import { renderSvg, visibleMeters, type StyleOptions } from '../render/svg';
 import type { MapRequest } from '../render/settings';
 import { detectHome, type GeoPoint } from '../map/anchor';
 import { mapScene } from '../map/scene';
+import { NO_ROUTES } from './messages';
 import { MapLoader, type MapFeatures } from '../map/tiles';
 import { syntheticWorkouts } from '../sample/synthetic';
 
@@ -70,7 +71,10 @@ class PageFileReader extends Reader<number> {
 }
 
 function loaded(list: Workout[]) {
-  workouts = prepareWorkouts(list);
+  const prepared = prepareWorkouts(list);
+  // An export with nothing to draw leaves the data already loaded in place.
+  if (!prepared.length) throw new Error(NO_ROUTES);
+  workouts = prepared;
   sceneCache = null;
   home = undefined;
   let first = Infinity;

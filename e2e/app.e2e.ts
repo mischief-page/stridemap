@@ -106,7 +106,8 @@ test('downloads the SVG', async ({ page }) => {
   await visit(page, `${PAGE}?sample`);
   await settled(page);
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#downloadSvg')]);
-  expect(download.suggestedFilename()).toBe('stridemap.svg');
+  // Named after the title and the style.
+  expect(download.suggestedFilename()).toBe('my-workouts-afterglow.svg');
 });
 
 test('the made-with mark is on by default and can be turned off', async ({ page }) => {
@@ -129,19 +130,86 @@ test('the footer links to the privacy page', async ({ page }) => {
   await expect(page.locator('#presetCards .preset-card')).toHaveCount(5);
 });
 
-test('settings groups start collapsed and open on click', async ({ page }) => {
+test('Style starts open, the other groups closed, and they open on click', async ({ page }) => {
   await page.goto(`${PAGE}?sample`);
   await settled(page);
   const groups = page.locator('details.group');
-  await expect(groups).toHaveCount(8);
-  expect(await groups.evaluateAll((els) => els.filter((d) => (d as HTMLDetailsElement).open).length)).toBe(0);
-  // The drop zone and downloads stay visible; the active style shows while collapsed.
+  await expect(groups).toHaveCount(7);
+  expect(await groups.evaluateAll((els) => els.filter((d) => (d as HTMLDetailsElement).open).map((d) => d.id))).toEqual(['styleGroup']);
+  // The drop zone, title and downloads are visible from the start.
   await expect(page.locator('#drop')).toBeVisible();
-  await expect(page.locator('#downloadSvg')).toBeVisible();
+  await expect(page.locator('#title')).toBeVisible();
+  await expect(page.locator('#downloadPng')).toBeVisible();
   await expect(page.locator('#styleHint')).toHaveText('Afterglow');
   await expect(page.locator('#colorB')).toBeHidden();
   await page.click('summary:has-text("Colors")');
   await expect(page.locator('#colorB')).toBeVisible();
+});
+
+test('opens on an example poster from the sample data', async ({ page }) => {
+  await page.goto(PAGE);
+  await settled(page);
+  await expect(page.locator('#exampleBadge')).toBeVisible();
+  await expect(page.locator('#status')).toContainText('Sample data: 300 of 300');
+  await expect(page.locator('#dataRange')).toContainText('300 workouts');
+});
+
+test('a file that fails to load leaves the current poster working', async ({ page }) => {
+  await visit(page, PAGE);
+  await settled(page);
+  // Not a zip at all: caught before reading.
+  await page.setInputFiles('#file', { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+  await expect(page.locator('#error')).toContainText("isn't a zip");
+  // Named .zip but broken: the engine's error, in plain words.
+  await page.setInputFiles('#file', { name: 'export.zip', mimeType: 'application/zip', buffer: Buffer.from('not really a zip') });
+  await expect(page.locator('#error')).toContainText("couldn't be opened as a zip");
+  await expect(page.locator('#loading')).toBeHidden();
+  await expect(page.locator('#exampleBadge')).toBeVisible();
+  // The sample is still loaded, and changes still redraw it.
+  const before = await previewSvg(page);
+  await page.click('#presetCards [data-id="ember"]');
+  await expect.poll(() => previewSvg(page)).not.toBe(before);
+  await expect(page.locator('#status')).toContainText('Sample data');
+});
+
+test('the upload can be reached and opened from the keyboard', async ({ page, browserName }) => {
+  await page.goto(PAGE);
+  await settled(page);
+  // Safari's Tab skips buttons and file inputs unless full keyboard access is
+  // turned on in macOS, so there the input is focused directly.
+  if (browserName === 'webkit') await page.focus('#file');
+  else await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('file');
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Space')]);
+  expect(chooser).toBeTruthy();
+});
+
+test('typing a title puts it on the poster', async ({ page }) => {
+  await visit(page, `${PAGE}?sample`);
+  await settled(page);
+  await page.uncheck('#legendShow');
+  await settled(page);
+  await page.fill('#title', 'Chicago Miles');
+  await expect(page.locator('#legendShow')).toBeChecked();
+  await expect.poll(() => previewSvg(page)).toContain('>Chicago Miles<');
+});
+
+test('arrow keys move between styles', async ({ page }) => {
+  await page.goto(`${PAGE}?sample`);
+  await settled(page);
+  await page.focus('#presetCards [data-id="afterglow"]');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#styleHint')).toHaveText('Terracotta');
+  expect(await page.evaluate(() => (document.activeElement as HTMLElement).dataset.id)).toBe('terracotta');
+  // One Tab stop for the group: only the chosen card is in the tab order.
+  expect(await page.locator('#presetCards [tabindex="0"]').count()).toBe(1);
+});
+
+test('the PNG sizes say how large they are', async ({ page }) => {
+  await page.goto(`${PAGE}?sample`);
+  await settled(page);
+  await expect(page.locator('#pngSize option[value="share"]')).toHaveText('For sharing (2400 × 3200 px)');
+  await expect(page.locator('#pngSize option[value="print"]')).toContainText('For printing (35');
 });
 
 test('the order panel is hidden until switched on, and sets the print shape', async ({ page }) => {
@@ -182,11 +250,11 @@ test('draws a street map behind the routes when asked, from mocked tiles', async
   expect(svg).toContain('OpenStreetMap contributors');
   expect(tiles.length).toBeGreaterThan(0);
   // By default routes from elsewhere are drawn where they went, if they cross the picture.
-  await expect(page.locator('#mapStatus')).toContainText('229 routes start here');
-  await expect(page.locator('#mapStatus')).toContainText('of 71 starting elsewhere cross the picture');
+  await expect(page.locator('#mapStatus')).toContainText('232 routes start here');
+  await expect(page.locator('#mapStatus')).toContainText('of 68 starting elsewhere cross the picture');
   await page.check('#mapOthers input[value="omit"]');
-  await expect(page.locator('#status')).toContainText('229 of 300');
-  await expect(page.locator('#mapStatus')).toContainText('71 starting elsewhere are left out');
+  await expect(page.locator('#status')).toContainText('232 of 300');
+  await expect(page.locator('#mapStatus')).toContainText('68 starting elsewhere are left out');
   await page.check('#mapOthers input[value="anchored"]');
   await expect(page.locator('#status')).toContainText('300 of 300');
   await expect(page.locator('#squash')).toBeDisabled();

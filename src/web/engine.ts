@@ -8,7 +8,8 @@ import EngineWorker from './worker?worker&inline';
 type RenderRequest = { filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null };
 
 export interface EngineHandlers {
-  onProgress(text: string): void;
+  /** `fraction` is how far through the current stage, 0–1. */
+  onProgress(text: string, fraction: number): void;
   onLoaded(info: { withGps: number; firstStart: number | null; lastStart: number | null }): void;
   /** `more` is true when a newer request is already on its way. */
   onRendered(result: { svg: string; shown: number; withGps: number; map: MapResult | null }, more: boolean): void;
@@ -54,9 +55,8 @@ export function createEngine(handlers: EngineHandlers) {
       case 'progress': {
         const { stage, done, total } = msg.progress;
         handlers.onProgress(
-          stage === 'workouts'
-            ? `Reading workouts… ${Math.round((done / Math.max(1, total)) * 100)}%`
-            : `Reading routes… ${done} of ${total}`,
+          stage === 'workouts' ? 'Reading the list of workouts…' : `Reading routes… ${done.toLocaleString()} of ${total.toLocaleString()}`,
+          done / Math.max(1, total),
         );
         break;
       }

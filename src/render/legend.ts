@@ -1,3 +1,4 @@
+import { formatHex, interpolate } from 'culori';
 import type { ActivityType } from '../core/types';
 import { inkFor, type Units } from './scale';
 import { round1 as r } from './format';
@@ -37,6 +38,10 @@ export interface LegendOptions {
   dateFormat: DateFormat;
   /** A line of totals, e.g. "412 runs · 2,318 mi". */
   showStats: boolean;
+  /** A small gradient key: "rarely ▬ often", or "slower ▬ faster" for pace. */
+  colorKey: boolean;
+  /** What the colors show, for the key's words. */
+  colorMode: 'pace' | 'frequency';
   position: LegendPosition;
   font: LegendFont;
   /** Multiplier on the default text size. */
@@ -57,6 +62,8 @@ export const DEFAULT_LEGEND: LegendOptions = {
   showDates: true,
   dateFormat: 'month',
   showStats: false,
+  colorKey: false,
+  colorMode: 'pace',
   position: 'top-left',
   font: 'sans',
   size: 1,
@@ -82,6 +89,8 @@ interface Frame {
   height: number;
   padding: number;
   background: string;
+  /** The routes' two colors, for the color key. */
+  colors?: [string, string];
 }
 
 /** What the drawing shows, for the dates and totals lines. */
@@ -119,7 +128,11 @@ interface Line {
   opacity: number;
   weight: number;
   caps: boolean;
+  /** Drawn as the color key rather than text. */
+  key?: [string, string];
 }
+
+const KEY_GRADIENT_ID = 'stridemap-key';
 
 function legendLines(frame: Frame, legend: LegendOptions, facts: LegendFacts): { lines: Line[]; base: number } {
   const base = (Math.min(frame.width, frame.height) / 28) * legend.size;
@@ -137,7 +150,12 @@ function legendLines(frame: Frame, legend: LegendOptions, facts: LegendFacts): {
     legend.showDates && facts.dateRange ? formatDateRange(facts.dateRange, legend.dateFormat, legend.locale) : '',
   ].filter(Boolean);
   if (details.length) {
-    lines.push({ text: details.join(' · '), size: base * 0.5, opacity: 0.7, weight: 400, caps: false });
+    lines.push({ text: details.join(' · '), size: base * 0.55, opacity: 0.75, weight: 400, caps: false });
+  }
+  // The line is counted whether or not colors are given, so the text band's height matches what's drawn.
+  if (legend.colorKey) {
+    const words: [string, string] = legend.colorMode === 'pace' ? ['slower', 'faster'] : ['rarely', 'often'];
+    lines.push({ text: `${words[0]}${' '.repeat(KEY_BAR_CHARS)}${words[1]}`, size: base * 0.45, opacity: 0.75, weight: 400, caps: false, key: words });
   }
   return { lines, base };
 }
@@ -177,11 +195,22 @@ export function renderLegend(frame: Frame, legend: LegendOptions, facts: LegendF
   const texts = lines.map((l, i) => {
     const baseline = y + l.size; // cap height sits roughly one font size below the line top
     y += gaps[i]!;
-    const caps = l.caps ? ` letter-spacing="${r(l.size * 0.12)}"` : '';
     const halo =
       legend.backdrop === 'halo'
         ? ` stroke="${frame.background}" stroke-width="${r(l.size / 5)}" stroke-opacity="0.9" stroke-linejoin="round" paint-order="stroke"`
         : '';
+    if (l.key) {
+      // "rarely ▬▬▬ often": words either side of a gradient bar, placed as one block.
+      const bar = l.size * KEY_BAR_CHARS * charWidth;
+      const gap = l.size * 0.5;
+      const [wa, wb] = l.key.map((w) => w.length * l.size * charWidth);
+      const total = wa! + gap + bar + gap + wb!;
+      const x0 = anchor === 'start' ? x : anchor === 'end' ? x - total : x - total / 2;
+      const word = (wx: number, w: string) =>
+        `<text x="${r(wx)}" y="${r(baseline)}" font-size="${r(l.size)}" fill-opacity="${l.opacity}" text-anchor="start"${halo}>${w}</text>`;
+      return `${word(x0, l.key[0])}<rect x="${r(x0 + wa! + gap)}" y="${r(baseline - l.size * 0.62)}" width="${r(bar)}" height="${r(l.size * 0.5)}" rx="${r(l.size * 0.25)}" fill="url(#${KEY_GRADIENT_ID})"/>${word(x0 + wa! + gap + bar + gap, l.key[1])}`;
+    }
+    const caps = l.caps ? ` letter-spacing="${r(l.size * 0.12)}"` : '';
     return `<text x="${r(x)}" y="${r(baseline)}" font-size="${r(l.size)}" font-weight="${l.weight}" fill-opacity="${l.opacity}"${caps}${halo}>${escapeXml(l.caps ? l.text.toUpperCase() : l.text)}</text>`;
   });
 
@@ -192,9 +221,20 @@ export function renderLegend(frame: Frame, legend: LegendOptions, facts: LegendF
     panel = `<rect x="${r(left - pad)}" y="${r(top - pad)}" width="${r(blockWidth + 2 * pad)}" height="${r(blockHeight + 2 * pad)}" rx="${r(pad / 2)}" fill="${frame.background}" fill-opacity="0.8"/>`;
   }
 
+  const keyGradient = lines.some((l) => l.key) ? keyGradientDef(frame.colors ?? [ink, ink]) : '';
   return `<g class="legend" font-family="${LEGEND_FONTS[legend.font]}" fill="${ink}" text-anchor="${anchor}">
-${panel}${texts.join('\n')}
+${keyGradient}${panel}${texts.join('\n')}
 </g>`;
+}
+
+/** How wide the key's bar is, in characters of its text. */
+const KEY_BAR_CHARS = 8;
+
+/** The key's gradient, blended the same way as the routes (in OKLCH). */
+function keyGradientDef([a, b]: [string, string]): string {
+  const color = interpolate([a, b], 'oklch');
+  const stops = [0, 0.25, 0.5, 0.75, 1].map((t) => `<stop offset="${t}" stop-color="${formatHex(color(t))}"/>`).join('');
+  return `<defs><linearGradient id="${KEY_GRADIENT_ID}">${stops}</linearGradient></defs>`;
 }
 
 export function escapeXml(s: string): string {

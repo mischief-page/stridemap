@@ -2,8 +2,11 @@ import { METERS_PER_DEG_LAT, metersPerDegLon, trackFromPoints, type TrackPoint }
 import type { ActivityType, Workout } from '../core/types';
 
 /**
- * Generates made-up walks and runs on a fictional street grid, so the project
- * can be developed, tested and demoed without anyone's real location data.
+ * Generates made-up walks and runs in a fictional neighbourhood, so the
+ * project can be developed, tested and demoed without anyone's real location
+ * data. The streets are a grid bent by a gentle, smooth distortion (so they
+ * curve like real ones), with a park that people run laps of and a winding
+ * river path.
  */
 export function syntheticWorkouts(count = 300, seed = 7): Workout[] {
   const rand = mulberry32(seed);
@@ -31,7 +34,12 @@ export function syntheticWorkouts(count = 300, seed = 7): Workout[] {
       type === 'running' ? 3000 + routeRand() * 12000 : type === 'walking' ? 1500 + routeRand() * 4000 : 4000 + routeRand() * 10000;
     const baseSpeed = type === 'running' ? 2.6 + rand() * 1.2 : type === 'walking' ? 1.2 + rand() * 0.4 : 1.0 + rand() * 0.5;
 
-    const path = gridWalk(routeRand, distanceM, base.block, base.angle);
+    // Park laps and the river path are near home. Their own random numbers
+    // keep everything else the same whichever routes are chosen.
+    const shapeRand = mulberry32(seed * 7919 + i);
+    const kind = base === bases[0] && !onFavourite ? shapeRand() : 1;
+    const grid = kind < 0.12 ? parkLoop(shapeRand, distanceM) : kind < 0.24 ? riverPath(shapeRand, distanceM) : gridWalk(routeRand, distanceM, base.block, base.angle);
+    const path = bend(densify(grid, 20), base.block);
     const points = sample(path, baseSpeed, start, base.lat, base.lon, rand);
     const last = points[points.length - 1]!;
     workouts.push({
@@ -75,6 +83,67 @@ function gridWalk(rand: () => number, distanceM: number, block: number, angle: n
   }
   const cos = Math.cos(angle), sin = Math.sin(angle);
   return nodes.map(([x, y]) => [(x * cos - y * sin) * block, (x * sin + y * cos) * block]);
+}
+
+/** Points every `step` meters along the path, so the bend shows as curves. */
+function densify(path: [number, number][], step: number): [number, number][] {
+  const out: [number, number][] = [path[0]!];
+  for (let i = 1; i < path.length; i++) {
+    const [ax, ay] = path[i - 1]!;
+    const [bx, by] = path[i]!;
+    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / step));
+    for (let k = 1; k <= n; k++) out.push([ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n]);
+  }
+  return out;
+}
+
+/**
+ * A smooth distortion of the plane: straight grid streets become gentle
+ * curves, and every route through the same street bends the same way. Home
+ * (0, 0) stays put.
+ */
+function bend(path: [number, number][], block: number): [number, number][] {
+  const a = block * 0.9;
+  const w = (x: number, y: number): [number, number] => [
+    a * Math.sin(y / 520 + 0.7) + a * 0.5 * Math.sin((x + y) / 830 + 1.9),
+    a * Math.sin(x / 610 + 2.3) + a * 0.5 * Math.sin((x - y) / 940 + 0.4),
+  ];
+  const [x0, y0] = w(0, 0);
+  return path.map(([x, y]) => {
+    const [dx, dy] = w(x, y);
+    return [x + dx - x0, y + dy - y0];
+  });
+}
+
+/** The park: a loop path around a pond, north-east of home. */
+const PARK = { x: 520, y: 640, r: 260 };
+
+/** Out along the streets to the park, a lap or more of its loop, and back the same way. */
+function parkLoop(rand: () => number, distanceM: number): [number, number][] {
+  const approach: [number, number][] = [[0, 0], [PARK.x, 0], [PARK.x, PARK.y - PARK.r]];
+  const approachM = PARK.x + PARK.y - PARK.r;
+  const lapM = 2 * Math.PI * PARK.r;
+  const laps = Math.max(1, Math.round((distanceM - 2 * approachM) / lapM));
+  const dir = rand() < 0.5 ? 1 : -1;
+  const loop: [number, number][] = [];
+  for (let k = 1; k <= laps * 48; k++) {
+    const t = -Math.PI / 2 + (dir * 2 * Math.PI * k) / 48;
+    loop.push([PARK.x + PARK.r * Math.cos(t), PARK.y + PARK.r * Math.sin(t)]);
+  }
+  return [...approach, ...loop, ...approach.slice(0, -1).reverse()];
+}
+
+/** The river winds west to east south of home; its path is popular for out-and-backs. */
+const riverY = (x: number) => -760 + 180 * Math.sin(x / 450) + 60 * Math.sin(x / 170 + 1);
+
+/** Down to the river, along its path one way, and back the same way. */
+function riverPath(rand: () => number, distanceM: number): [number, number][] {
+  const dir = rand() < 0.5 ? 1 : -1;
+  const reach = 760;
+  const alongM = Math.max(400, distanceM / 2 - reach);
+  const out: [number, number][] = [[0, 0]];
+  for (let x = 0; Math.abs(x) <= alongM; x += dir * 25) out.push([x, riverY(x)]);
+  return [...out, ...out.slice(0, -1).reverse()];
 }
 
 /** Walks the path at a varying speed, recording a noisy GPS point every second. */

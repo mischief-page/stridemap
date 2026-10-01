@@ -12,9 +12,9 @@ Your data never leaves your device. The export is read in your browser (or on yo
    - **Apple Health:** on your iPhone, open **Health**, tap your profile picture, then **Export All Health Data**. This makes `export.zip` (it can take a few minutes).
    - **Strava:** on strava.com, open **Settings → My Account → Download or Delete Your Account → Get Started**, then **Request Your Archive**. Strava emails you a link to the zip.
 2. Run the web app (below) and drop the zip onto the page, as it is.
-3. Pick colors and filters, then download an SVG or PNG.
+3. Pick a style, type a title, adjust anything else, then download a PNG (sized for sharing or for printing) or an SVG.
 
-No iPhone export handy? Click **Try with sample data**, or open the page with `?sample`.
+The page opens on an example poster made from sample data, so you can try every setting before finding your export.
 
 ## Run it as a single file
 
@@ -23,7 +23,7 @@ npm install
 npm run build:single   # writes dist-single/stridemap.html
 ```
 
-`stridemap.html` is fully self-contained (about 220 KB). Double-click it to open it in your browser. No server or internet connection is needed, and you can copy it anywhere.
+`stridemap.html` is fully self-contained (about 390 KB). Double-click it to open it in your browser. No server or internet connection is needed, and you can copy it anywhere.
 
 ## Develop
 

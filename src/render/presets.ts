@@ -32,6 +32,7 @@ const POSTER: Omit<Look, 'background' | 'colorA' | 'colorB' | 'blend' | 'strokeW
   legendShow: true,
   showDates: true,
   showStats: true,
+  legendKey: true,
   dateFormat: 'month',
   textBand: true,
   legendPosition: 'bottom-center',

@@ -16,25 +16,41 @@
 
     <main>
       <aside id="controls">
-        <section>
-          <h2>Data</h2>
+        <section id="dataSection">
+          <h2>Your data</h2>
           <label class="drop" id="drop">
-            <input type="file" id="file" accept=".zip,application/zip" hidden />
-            <strong>Drop your export zip here</strong>
-            <span>or click to choose it. Apple Health or Strava.</span>
+            <input type="file" id="file" class="visually-hidden" accept=".zip,application/zip" />
+            <strong class="for-pointer">Drop your export zip here</strong>
+            <strong class="for-touch">Choose your export zip</strong>
+            <span><span class="for-pointer">or click to choose it. </span>Apple Health or Strava. It stays on this device.</span>
           </label>
-          <details class="howto">
+          <details class="howto" id="howto" open>
             <summary>How do I get my export?</summary>
-            <p><strong>Apple Health:</strong> on your iPhone, open Health, tap your profile picture, then Export All Health Data. This makes export.zip, which can take a few minutes.</p>
-            <p><strong>Strava:</strong> on strava.com, open Settings → My Account → Download or Delete Your Account → Get Started, then Request Your Archive. Strava emails you a link to a zip. Drop it here as it is; there's no need to unzip it.</p>
+            <p><strong>Apple Health</strong>, on your iPhone:</p>
+            <ol>
+              <li>Open Health, tap your profile picture, then <em>Export All Health Data</em>. It can take a few minutes.</li>
+              <li>When it's ready, choose <em>Save to Files</em>.</li>
+              <li>Come back here, tap <em>Choose your export zip</em>, and pick <em>export.zip</em>.</li>
+            </ol>
+            <p><strong>Strava</strong>, on strava.com: Settings → My Account → Download or Delete Your Account → Get Started → Request Your Archive. Strava emails you a link to a zip; use it as it is, without unzipping.</p>
           </details>
-          <button type="button" id="sample">Try with sample data</button>
+          <button type="button" id="sample" class="small">Use the sample data</button>
+          <p id="error" class="error" role="alert" hidden></p>
           <p id="status" role="status"></p>
         </section>
+
+        <details class="group" id="styleGroup" open>
+          <summary>Style <span class="hint" id="styleHint"></span></summary>
+          <div class="presets-grid" id="presetCards" role="radiogroup" aria-label="Poster style"></div>
+          <small id="presetNote">Pick a style to start from, then change anything below.</small>
+          <label>Title <input type="text" id="title" placeholder="My Workouts" autocomplete="off" /></label>
+          <label>Name <input type="text" id="name" placeholder="Your name (optional)" autocomplete="off" /></label>
+        </details>
 
         <details class="group">
           <summary>Workouts</summary>
           <fieldset class="row" id="types">
+            <legend class="visually-hidden">Workout types</legend>
             <label><input type="checkbox" value="running" checked /> Runs</label>
             <label><input type="checkbox" value="walking" checked /> Walks</label>
             <label><input type="checkbox" value="hiking" checked /> Hikes</label>
@@ -44,57 +60,24 @@
             <label>To <input type="date" id="to" /></label>
           </div>
           <div class="row date-ranges" id="dateRanges">
-            <button type="button" data-range="all">All time</button>
-            <button type="button" data-range="12m">Last 12 months</button>
-            <button type="button" data-range="this">This year</button>
-            <button type="button" data-range="last">Last year</button>
+            <button type="button" data-range="all" aria-pressed="true">All time</button>
+            <button type="button" data-range="12m" aria-pressed="false">Last 12 months</button>
+            <button type="button" data-range="this" aria-pressed="false">This year</button>
+            <button type="button" data-range="last" aria-pressed="false">Last year</button>
           </div>
-        </details>
-
-        <details class="group">
-          <summary>Style <span class="hint" id="styleHint"></span></summary>
-          <div class="presets-grid" id="presetCards" role="radiogroup" aria-label="Poster style"></div>
-          <small id="presetNote">Pick a style to start from, then change anything below.</small>
-        </details>
-
-        <details class="group">
-          <summary>Poster</summary>
-          <div class="row">
-            <label>Print
-              <select id="aspect">
-                <option value="3:2">3:2 (12×18, 24×36 in)</option>
-                <option value="4:3">4:3 (18×24 in)</option>
-                <option value="5:4">5:4 (8×10, 16×20 in)</option>
-                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
-                <option value="iso">A4 / A3 / A2</option>
-                <option value="16:9">16:9 (screen)</option>
-                <option value="1:1">Square</option>
-              </select>
-            </label>
-            <fieldset class="row" id="orientation">
-              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
-              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
-            </fieldset>
-          </div>
-          <label>Fit <output id="fitOut"></output>
-            <input type="range" id="fit" min="50" max="100" step="1" value="95" />
-            <small>Share of workouts that must fit on the canvas. The rest run off the edge.</small>
-          </label>
-          <label>Squash long routes <output id="squashOut"></output>
-            <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" />
-            <small>1 is true scale. Lower pulls long routes inward, keeping their direction.</small>
-          </label>
+          <small id="dataRange"></small>
         </details>
 
         <details class="group">
           <summary>Colors</summary>
           <fieldset class="row" id="colorMode">
+            <legend>Color shows</legend>
             <label><input type="radio" name="colorMode" value="pace" checked /> Pace</label>
             <label><input type="radio" name="colorMode" value="frequency" /> How often</label>
           </fieldset>
           <div class="row">
-            <label>Slow / rare <input type="color" id="colorA" /></label>
-            <label>Fast / often <input type="color" id="colorB" /></label>
+            <label><span id="colorALabel">Slow</span> <input type="color" id="colorA" /></label>
+            <label><span id="colorBLabel">Fast</span> <input type="color" id="colorB" /></label>
             <label>Background <input type="color" id="background" /></label>
           </div>
           <label>Blend
@@ -108,10 +91,10 @@
 
         <details class="group">
           <summary>Lines</summary>
-          <label>Smoothing <output id="smoothingOut"></output>
-            <input type="range" id="smoothing" min="0" max="40" step="1" value="0" />
-            <small>0 draws routes as recorded. Higher rounds corners into flowing curves. Heavy smoothing cuts corners, so routes get a little shorter than the scale says.</small>
-          </label>
+          <label for="smoothing">Smoothing <output id="smoothingOut"></output></label>
+          <input type="range" id="smoothing" min="0" max="40" step="1" value="0" aria-describedby="smoothingHelp" />
+          <div class="ends" aria-hidden="true"><span>As recorded</span><span>Flowing curves</span></div>
+          <small id="smoothingHelp">Heavy smoothing cuts corners, so routes get a little shorter than the scale says.</small>
           <label>Line style
             <select id="lineStyle">
               <option value="clean">Clean</option>
@@ -136,14 +119,15 @@
         </details>
 
         <details class="group">
-          <summary>Legend</summary>
-          <label class="inline"><input type="checkbox" id="legendShow" /> Show a legend</label>
+          <summary>Text</summary>
+          <label class="inline"><input type="checkbox" id="legendShow" /> Show the title and details</label>
           <fieldset id="legendFields" disabled>
-            <label>Title <input type="text" id="title" placeholder="e.g. Two years of running" /></label>
-            <label>Name <input type="text" id="name" placeholder="Your name" /></label>
             <div class="row">
-              <label><input type="checkbox" id="showStats" /> Totals</label>
-              <label><input type="checkbox" id="showDates" checked /> Dates shown</label>
+              <label><input type="checkbox" id="showStats" /> Show totals</label>
+              <label><input type="checkbox" id="legendKey" /> Show a color key</label>
+            </div>
+            <div class="row">
+              <label><input type="checkbox" id="showDates" checked /> Show dates</label>
               <label>
                 <select id="dateFormat" aria-label="Date format">
                   <option value="month">Jan 2024 – Aug 2025</option>
@@ -185,14 +169,40 @@
             </label>
             <div class="row">
               <label><input type="checkbox" id="legendCaps" /> Title in capitals</label>
-              <label>Color <input type="color" id="legendColor" /></label>
+              <label>Text color <input type="color" id="legendColor" /></label>
               <button type="button" id="legendColorAuto" class="small" hidden>Auto</button>
             </div>
           </fieldset>
         </details>
 
         <details class="group">
-          <summary>Scale</summary>
+          <summary>Size &amp; scale</summary>
+          <div class="row">
+            <label>Print shape
+              <select id="aspect">
+                <option value="3:2">3:2 (12×18, 24×36 in)</option>
+                <option value="4:3">4:3 (18×24 in)</option>
+                <option value="5:4">5:4 (8×10, 16×20 in)</option>
+                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
+                <option value="iso">A4 / A3 / A2</option>
+                <option value="16:9">16:9 (screen)</option>
+                <option value="1:1">Square</option>
+              </select>
+            </label>
+            <fieldset class="row" id="orientation">
+              <legend class="visually-hidden">Orientation</legend>
+              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
+              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
+            </fieldset>
+          </div>
+          <label for="fit">Fit <output id="fitOut"></output></label>
+          <input type="range" id="fit" min="50" max="100" step="1" value="95" aria-describedby="fitHelp" />
+          <div class="ends" aria-hidden="true"><span>Zoom in</span><span>Every route</span></div>
+          <small id="fitHelp">How many routes fit fully in the picture; the rest run off the edge.</small>
+          <label for="squash">Long routes <output id="squashOut"></output></label>
+          <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" aria-describedby="squashHelp" />
+          <div class="ends" aria-hidden="true"><span>Pull them in</span><span>True scale</span></div>
+          <small id="squashHelp">Pulling in keeps each route's direction but shortens long ones, so the scale becomes rings.</small>
           <div class="row">
             <label>Scale
               <select id="scale">
@@ -207,14 +217,13 @@
                 <option value="mi">miles</option>
               </select>
             </label>
-            <label>Color <input type="color" id="scaleColor" /></label>
+            <label>Scale color <input type="color" id="scaleColor" /></label>
             <button type="button" id="scaleColorAuto" class="small" hidden>Auto</button>
           </div>
-          <small>When long routes are squashed, the scale is drawn as rings, since a bar can't be accurate.</small>
         </details>
 
         <details class="group">
-          <summary>Background <span class="hint">optional</span></summary>
+          <summary>Behind the routes</summary>
           <fieldset id="underlay">
             <label><input type="radio" name="underlay" value="none" checked /> None</label>
             <label><input type="radio" name="underlay" value="map" /> Street map</label>
@@ -258,12 +267,17 @@
           </label>
         </details>
 
-        <section>
+        <section id="downloadSection">
+          <h2>Download</h2>
+          <label>PNG size
+            <select id="pngSize">
+              <option value="share">For sharing</option>
+              <option value="print">For printing</option>
+            </select>
+          </label>
+          <button type="button" id="downloadPng" class="primary" disabled>Download PNG</button>
+          <button type="button" id="downloadSvg" class="link" disabled>or download SVG (vector, for designers)</button>
           <label class="inline"><input type="checkbox" id="mark" checked /> Add a small “made with stridemap” mark</label>
-          <div class="row downloads">
-            <button type="button" id="downloadSvg" disabled>Download SVG</button>
-            <button type="button" id="downloadPng" disabled>Download PNG</button>
-          </div>
         </section>
 
         <!-- Hidden until checkout works; ?orders shows it for testing. -->
@@ -275,7 +289,19 @@
         </section>
       </aside>
 
-      <figure id="preview" aria-label="Route visualization"></figure>
+      <div class="preview-wrap">
+        <figure id="preview" aria-label="Your poster">
+          <div id="previewImage"></div>
+          <div id="loading" class="overlay" hidden>
+            <p id="loadingText">Reading…</p>
+            <progress id="loadingBar" max="1"></progress>
+          </div>
+          <div id="exampleBadge" class="badge" hidden>
+            <span>Example<span class="long"> made from sample data</span></span>
+            <button type="button" id="useMine" class="small">Use my export</button>
+          </div>
+        </figure>
+      </div>
     </main>
 
     <footer>

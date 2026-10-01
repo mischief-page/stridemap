@@ -23,6 +23,13 @@ export interface ScaleFrame {
   radialExponent: number;
   /** Which bottom corner the scale bar sits in. */
   barSide: 'left' | 'right';
+  /** Label font, to match the poster's text; system sans by default. */
+  fontFamily?: string;
+  /**
+   * Compass direction (radians clockwise from north) along which ring labels
+   * sit; pick one where few routes go, so the labels stay readable.
+   */
+  ringLabelAngle?: number;
 }
 
 /** The 1, 2 or 5 × 10ⁿ closest to `value` (compared as ratios). */
@@ -62,11 +69,11 @@ export function renderScale(
   const fontSize = Math.round(Math.min(frame.width, frame.height) / 75);
   // A halo in the background color keeps labels readable over dense routes.
   const text =
-    `font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="${fontSize}" ` +
+    `font-family="${frame.fontFamily ?? "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"}" font-size="${fontSize}" ` +
     `fill="${ink}" stroke="${background}" stroke-width="${fontSize / 3}" stroke-opacity="0.9" stroke-linejoin="round" paint-order="stroke"`;
   // Automatic rings stay faint so they don't compete with the routes; a chosen
   // color is meant to be seen, so it's drawn stronger.
-  const ringOpacity = color ? 0.6 : 0.35;
+  const ringOpacity = color ? 0.7 : 0.45;
   return useRings
     ? rings(frame, units, ink, text, fontSize, ringOpacity)
     : bar(frame, units, ink, text, fontSize);
@@ -97,7 +104,8 @@ function rings(
   const unitM = METERS_PER[units];
   const radiusPx = (meters: number) => meters ** f.radialExponent * f.pxPerMeter;
   const maxPx = Math.max(f.width, f.height) * 0.75;
-  const minGapPx = fontSize * 3;
+  // Room for one label between rings, whichever way the labels run.
+  const minGapPx = fontSize * 4.5;
   // Rings closer in than this would sit in the densest part of the web.
   const minRadiusPx = Math.min(f.width, f.height) * 0.08;
 
@@ -117,14 +125,21 @@ function rings(
   const circles = chosen
     .map(({ px }) => `<circle cx="${r(f.anchorX)}" cy="${r(f.anchorY)}" r="${r(px)}"/>`)
     .join('');
+  // Labels sit just outside each ring, along the quietest direction.
+  const angle = f.ringLabelAngle ?? 0;
+  const [dx, dy] = [Math.sin(angle), -Math.cos(angle)];
+  const anchor = dx > 0.3 ? 'start' : dx < -0.3 ? 'end' : 'middle';
   const labels = chosen
-    .map(
-      ({ amount, px }) =>
-        `<text x="${r(f.anchorX + 4)}" y="${r(f.anchorY - px - 4)}" ${text}>${formatDistance(amount, units)}</text>`,
-    )
+    .map(({ amount, px }) => {
+      const at = px + fontSize * 0.6;
+      // Text hangs below its baseline point when the labels run downward.
+      const y = f.anchorY + dy * at + (dy > 0.3 ? fontSize * 0.8 : 0);
+      return `<text x="${r(f.anchorX + dx * at)}" y="${r(y)}" text-anchor="${anchor}" ${text}>${formatDistance(amount, units)}</text>`;
+    })
     .join('');
+  const unit = Math.min(f.width, f.height) / 1200;
   return `<g class="scale">
-<g stroke="${ink}" stroke-opacity="${opacity}" stroke-width="1" stroke-dasharray="3 5" fill="none">${circles}</g>
+<g stroke="${ink}" stroke-opacity="${opacity}" stroke-width="${r(Math.max(1, 1.3 * unit))}" stroke-dasharray="${r(4 * unit)} ${r(5 * unit)}" fill="none">${circles}</g>
 <g>${labels}</g>
 </g>`;
 }
