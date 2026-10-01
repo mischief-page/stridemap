@@ -295,3 +295,15 @@ test('reads a Strava download (FIT, GPX and TCX tracks) from a file', async ({ p
   await settled(page);
   expect(await previewSvg(page)).toContain('<path');
 });
+
+test('choosing a second export while the first is loading shows only the second', async ({ page }) => {
+  await visit(page, PAGE);
+  await settled(page);
+  await page.setInputFiles('#file', SAMPLE_EXPORT);
+  await page.setInputFiles('#file', SAMPLE_STRAVA);
+  await expect(page.locator('#status')).toContainText('sample-strava.zip: 20 of 20', { timeout: 30_000 });
+  // The first load, replaced, neither reports an error nor replaces the data later.
+  await page.waitForTimeout(1500);
+  await expect(page.locator('#status')).toContainText('sample-strava.zip: 20 of 20');
+  await expect(page.locator('#error')).toBeHidden();
+});

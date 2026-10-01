@@ -15,8 +15,8 @@ export interface DistanceStyle {
   strength: number;
   /**
    * Milestones: level lines cut through the fill as thin gaps, each with a
-   * tiny label ("500 mi" where the running total passes it; "50 mi/mo" for
-   * distance per month).
+   * tiny label ("500 mi" where the running total passes it; "50 mi/mo", or
+   * "/wk" for short spans, for distance per period).
    */
   markers: boolean;
 }
@@ -61,7 +61,8 @@ export function renderDistance(timeline: TimelinePoint[], style: DistanceStyle, 
 
   const bottom = f.top + f.height;
   const xOf = (t: number) => ((t - t0) / (t1 - t0)) * f.width;
-  const pts = style.shape === 'total' ? runningTotal(timeline, f.width) : perPeriod(timeline, t1 - t0 >= MONTHLY_MIN_SPAN);
+  const monthly = t1 - t0 >= MONTHLY_MIN_SPAN;
+  const pts = style.shape === 'total' ? runningTotal(timeline, f.width) : perPeriod(timeline, monthly);
   const max = Math.max(...pts.map((p) => p.v));
   if (!(max > 0)) return '';
   const xy = pts.map((p) => [xOf(p.t), bottom - (p.v / max) * f.height * PEAK] as const);
@@ -89,7 +90,7 @@ export function renderDistance(timeline: TimelinePoint[], style: DistanceStyle, 
   const start = formatHex(interpolate([f.colorA, f.colorB], 'oklch')(0.4));
 
   const yOf = (v: number) => bottom - (v / max) * f.height * PEAK;
-  const markers = style.markers ? renderMarkers(style, f, pts.map((p, i) => ({ x: xy[i]![0], v: p.v })), max, yOf, unit) : null;
+  const markers = style.markers ? renderMarkers(style, f, pts.map((p, i) => ({ x: xy[i]![0], v: p.v })), max, yOf, unit, monthly ? 'mo' : 'wk') : null;
 
   return `<g class="distance">
 <defs><linearGradient id="${GRADIENT_ID}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="${start}"/><stop offset="1" stop-color="${f.colorB}"/></linearGradient>${markers ? `<clipPath id="${CLIP_ID}"><path d="${area}"/></clipPath>` : ''}</defs>
@@ -156,6 +157,8 @@ function renderMarkers(
   max: number,
   yOf: (v: number) => number,
   unit: number,
+  /** The per-period chart's bucket, for its labels. */
+  period: 'mo' | 'wk',
 ): { lines: string; labels: string } | null {
   const perUnit = METERS_PER[f.units];
   const step = niceRound(max / perUnit / 5) * perUnit;
@@ -182,7 +185,7 @@ function renderMarkers(
       const x = Math.max(cross - gap, f.padding + text.length * size * 0.55);
       labels.push(`<text x="${r(x)}" y="${r(y + size * 0.35)}" text-anchor="end">${text}</text>`);
     } else {
-      labels.push(`<text x="${r(f.padding)}" y="${r(y - gap / 2)}">${amount} ${f.units}/mo</text>`);
+      labels.push(`<text x="${r(f.padding)}" y="${r(y - gap / 2)}">${amount} ${f.units}/${period}</text>`);
     }
   }
   return {

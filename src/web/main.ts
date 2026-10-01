@@ -43,8 +43,10 @@ const engine = createEngine({
     $('exampleBadge').hidden = source.kind !== 'sample';
     render();
   },
-  onRendered({ svg, shown, withGps, map }, more) {
-    current.svg = svg;
+  onRendered({ svg, width, height, shown, withGps, map }, more) {
+    // The size comes with the image, so a PNG always matches the picture it's made from.
+    current = { ...current, svg, width, height };
+    updatePngSizes();
     const from = source?.kind === 'file' ? source.name : 'Sample data';
     status.textContent = `${from}: ${shown} of ${withGps} workouts shown.`;
     $('mapStatus').textContent = mapStatus(map);
@@ -92,12 +94,11 @@ function render() {
   const state = readState();
   const { filters, layout, style, map } = toRenderRequest(state);
   engine.render({ filters, layout, style, map });
-  current = { ...current, width: style.width, height: style.height, title: state.title };
+  current.title = state.title;
   // The preview takes the image's shape, whatever the window's.
   preview.style.setProperty('--ratio', String(style.width / style.height));
   preview.style.background = style.background;
   preview.classList.add('updating');
-  updatePngSizes();
   markDateRange();
 }
 

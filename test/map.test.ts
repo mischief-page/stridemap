@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildScene, prepareWorkouts } from '../src/core/pipeline';
+import { metersPerDegLon } from '../src/core/track';
 import { detectHome } from '../src/map/anchor';
 import { mapScene } from '../src/map/scene';
 import { geocode } from '../src/map/geocode';
@@ -76,6 +77,51 @@ describe('MapLoader', () => {
       'https://tiles.openfreemap.org/planet',
       `https://tiles.example/${Z}/${TX}/${TY}.pbf`,
     ]);
+  });
+});
+
+describe('MapLoader failures', () => {
+  const TILEJSON_BODY = JSON.stringify({ tiles: ['https://tiles.example/{z}/{x}/{y}.pbf'] });
+  const area = { minX: -100, maxX: 100, minY: -100, maxY: 100 };
+
+  it('tries the TileJSON again after a failure, rather than failing for good', async () => {
+    let online = false;
+    const fetchFn = vi.fn(async (url: string) => {
+      if (!online) throw new TypeError('Failed to fetch');
+      return url.endsWith('/planet') ? new Response(TILEJSON_BODY) : new Response(TILE);
+    });
+    const loader = new MapLoader(fetchFn as unknown as typeof fetch);
+    await expect(loader.load(tileCenter, area)).rejects.toThrow('Failed to fetch');
+    online = true;
+    expect((await loader.load(tileCenter, area)).majorRoads).toHaveLength(1);
+  });
+
+  it('fails on a rate-limited tile and fetches it again next time; a missing tile is just empty', async () => {
+    let status = 503;
+    const fetchFn = vi.fn(async (url: string) =>
+      url.endsWith('/planet') ? new Response(TILEJSON_BODY) : status === 200 ? new Response(TILE) : new Response(null, { status }),
+    );
+    const loader = new MapLoader(fetchFn as unknown as typeof fetch);
+    await expect(loader.load(tileCenter, area)).rejects.toThrow('503');
+    status = 200;
+    expect((await loader.load(tileCenter, area)).majorRoads).toHaveLength(1);
+
+    const empty = new MapLoader((async (url: string) =>
+      url.endsWith('/planet') ? new Response(TILEJSON_BODY) : new Response(null, { status: 404 })) as unknown as typeof fetch);
+    expect((await empty.load(tileCenter, area)).majorRoads).toHaveLength(0);
+  });
+
+  it('reuses decoded tiles for a new center, placing them around it', async () => {
+    const fetchFn = vi.fn(async (url: string) => (url.endsWith('/planet') ? new Response(TILEJSON_BODY) : new Response(TILE)));
+    const loader = new MapLoader(fetchFn as unknown as typeof fetch);
+    const a = await loader.load(tileCenter, area);
+    const moved = { lat: tileCenter.lat, lon: tileCenter.lon + 0.001 }; // about 83 m east, same tile
+    const b = await loader.load(moved, area);
+    expect(fetchFn).toHaveBeenCalledTimes(2); // TileJSON and the one tile, once each
+    // The same road, about 83 m further west of the new center.
+    expect(a.majorRoads[0]![0]! - b.majorRoads[0]![0]!).toBeCloseTo(0.001 * metersPerDegLon(tileCenter.lat), 0);
+    // Asking again for the same view returns the same result without reprojecting.
+    expect(await loader.load(moved, area)).toBe(b);
   });
 });
 

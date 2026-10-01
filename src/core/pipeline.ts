@@ -93,9 +93,15 @@ export interface PreparedWorkout {
   distanceM: number;
 }
 
-/** Prepares every outdoor workout with a usable GPS track; the rest are left out. */
+/**
+ * Prepares every outdoor workout with a usable GPS track; the rest are left
+ * out. Ids are made unique here: per-workout values are keyed by id, and two
+ * workouts of the same type can start in the same second (say, recorded by the
+ * watch and by another app).
+ */
 export function prepareWorkouts(workouts: Workout[]): PreparedWorkout[] {
   const out: PreparedWorkout[] = [];
+  const seen = new Map<string, number>();
   for (const w of workouts) {
     if (w.indoor || !w.track) continue;
     const track = cleanTrack(w.track);
@@ -104,8 +110,10 @@ export function prepareWorkouts(workouts: Workout[]): PreparedWorkout[] {
     const pace = paceSeries(track);
     const value = new Float32Array(pace.length);
     for (let i = 0; i < pace.length; i++) value[i] = -pace[i]!;
+    const copies = (seen.get(w.id) ?? 0) + 1;
+    seen.set(w.id, copies);
     out.push({
-      id: w.id,
+      id: copies === 1 ? w.id : `${w.id}#${copies}`,
       type: w.type,
       start: w.start,
       lat: track.lat,

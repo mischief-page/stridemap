@@ -22,12 +22,15 @@ export async function readHealthEntries(files: FileEntry[], onProgress?: (p: Pro
     onprogress: async (done, total) => onProgress?.({ stage: 'workouts', done, total }),
   });
   const text = decoder.readable.getReader();
-  for (;;) {
-    const { value, done } = await text.read();
-    if (done) break;
-    parser.write(value);
-  }
-  await written;
+  const parse = async () => {
+    for (;;) {
+      const { value, done } = await text.read();
+      if (done) break;
+      parser.write(value);
+    }
+  };
+  // Waited on together, so a failure on either side is reported, not left unhandled.
+  await Promise.all([parse(), written]);
   const entries = parser.close();
 
   const routes = new Map(files.map((f) => [routeKey(f.filename), f]));

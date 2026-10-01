@@ -51,6 +51,13 @@ describe('renderDistance', () => {
     expect(svg).toMatch(/>\d+ mi\/mo</);
   });
 
+  it('labels short spans per week, since they are bucketed by week', () => {
+    const short = timeline.slice(0, 78);
+    const svg = renderDistance(short, { shape: 'monthly', strength: 0.25, markers: true }, frame);
+    expect(svg).toMatch(/>\d+ km\/wk</);
+    expect(svg).not.toContain('/mo<');
+  });
+
   it('draws nothing for a single workout', () => {
     expect(renderDistance(timeline.slice(0, 1), { shape: 'total', strength: 0.25, markers: false }, frame)).toBe('');
   });

@@ -61,15 +61,26 @@ export function tilesFor(anchor: GeoPoint, area: Bounds): { z: number; tiles: { 
   throw new Error('unreachable');
 }
 
-/** Decodes one tile's features into meters around the anchor. */
-export function decodeTile(data: ArrayBuffer, tx: number, ty: number, z: number, anchor: GeoPoint, into: MapFeatures): void {
+/**
+ * One decoded tile, in the tile's own units (0 to 1 across the tile, as
+ * fractions of the tile at its zoom), so it can be placed around any anchor.
+ */
+interface DecodedTile {
+  z: number;
+  x: number;
+  y: number;
+  features: MapFeatures;
+}
+
+/** Decodes one tile, keeping coordinates as fractions of the tile. */
+function decode(data: ArrayBuffer, x: number, y: number, z: number): DecodedTile {
   const tile = new VectorTile(new PbfReader(new Uint8Array(data)));
-  const mLon = metersPerDegLon(anchor.lat);
-  const toLocal = (ring: { x: number; y: number }[], extent: number): Float32Array => {
+  const into = emptyFeatures();
+  const toUnits = (ring: { x: number; y: number }[], extent: number): Float32Array => {
     const out = new Float32Array(ring.length * 2);
     ring.forEach((p, i) => {
-      out[i * 2] = (xToLon(tx + p.x / extent, z) - anchor.lon) * mLon;
-      out[i * 2 + 1] = (yToLat(ty + p.y / extent, z) - anchor.lat) * METERS_PER_DEG_LAT;
+      out[i * 2] = p.x / extent;
+      out[i * 2 + 1] = p.y / extent;
     });
     return out;
   };
@@ -78,7 +89,7 @@ export function decodeTile(data: ArrayBuffer, tx: number, ty: number, z: number,
     if (!layer) return;
     for (let i = 0; i < layer.length; i++) {
       const f = layer.feature(i);
-      fn(f.properties, f.loadGeometry().map((ring) => toLocal(ring, layer.extent)), f.type);
+      fn(f.properties, f.loadGeometry().map((ring) => toUnits(ring, layer.extent)), f.type);
     }
   };
   each('water', (_, rings, type) => type === 3 && into.water.push(rings));
@@ -92,15 +103,52 @@ export function decodeTile(data: ArrayBuffer, tx: number, ty: number, z: number,
     else if (MINOR.has(cls)) into.minorRoads.push(...lines);
     else if (PATHS.has(cls)) into.paths.push(...lines);
   });
+  return { z, x, y, features: into };
 }
 
+/** A decoded tile's features in meters around the anchor, added to `into`. */
+function place(tile: DecodedTile, anchor: GeoPoint, into: MapFeatures): void {
+  const mLon = metersPerDegLon(anchor.lat);
+  const { x: tx, y: ty, z } = tile;
+  const toMeters = (units: Float32Array): Float32Array => {
+    const out = new Float32Array(units.length);
+    for (let i = 0; i < units.length; i += 2) {
+      out[i] = (xToLon(tx + units[i]!, z) - anchor.lon) * mLon;
+      out[i + 1] = (yToLat(ty + units[i + 1]!, z) - anchor.lat) * METERS_PER_DEG_LAT;
+    }
+    return out;
+  };
+  const f = tile.features;
+  into.water.push(...f.water.map((rings) => rings.map(toMeters)));
+  into.parks.push(...f.parks.map((rings) => rings.map(toMeters)));
+  into.rivers.push(...f.rivers.map(toMeters));
+  into.majorRoads.push(...f.majorRoads.map(toMeters));
+  into.minorRoads.push(...f.minorRoads.map(toMeters));
+  into.paths.push(...f.paths.map(toMeters));
+}
+
+/** Decodes one tile's features into meters around the anchor. */
+export function decodeTile(data: ArrayBuffer, tx: number, ty: number, z: number, anchor: GeoPoint, into: MapFeatures): void {
+  place(decode(data, tx, ty, z), anchor, into);
+}
+
+/** Decoded tiles kept for reuse; enough for a couple of map views. */
+const MAX_CACHED_TILES = 300;
+
 /**
- * Loads the map around a point. Decoded tiles are cached by tile and anchor,
- * so redrawing (new colors, a new legend) doesn't fetch again.
+ * Loads the map around a point. Decoded tiles are cached by tile (whatever the
+ * anchor), up to MAX_CACHED_TILES, and the last result is kept, so redrawing
+ * (new colors, a new legend) neither fetches nor reprojects.
+ *
+ * Failures aren't remembered: a failed TileJSON request is retried next time,
+ * and a tile that fails to load (rate limit, server error) makes this load
+ * fail rather than leaving a blank square in the cache. Tiles the server has
+ * no data for (404, 204) are empty, which is correct.
  */
 export class MapLoader {
   private template: Promise<string> | null = null;
-  private cache = new Map<string, Promise<MapFeatures>>();
+  private tiles = new Map<string, Promise<DecodedTile>>();
+  private last: { key: string; features: MapFeatures } | null = null;
 
   // Wrapped: browsers reject fetch called with anything but the global as `this`.
   constructor(private readonly fetchFn: typeof fetch = (input, init) => fetch(input, init)) {}
@@ -108,33 +156,43 @@ export class MapLoader {
   private tileTemplate(): Promise<string> {
     // The tile URL carries a weekly data version, published in the TileJSON.
     this.template ??= this.fetchFn(TILEJSON)
-      .then((r) => r.json() as Promise<{ tiles: string[] }>)
+      .then((r) => {
+        if (!r.ok) throw new Error(`map service unavailable (${r.status})`);
+        return r.json() as Promise<{ tiles: string[] }>;
+      })
       .then((j) => j.tiles[0]!);
+    this.template.catch(() => (this.template = null));
     return this.template;
+  }
+
+  private tile(template: string, z: number, x: number, y: number): Promise<DecodedTile> {
+    const key = `${z}/${x}/${y}`;
+    let tile = this.tiles.get(key);
+    if (tile) {
+      // Most recently used goes to the end, so the oldest are dropped first.
+      this.tiles.delete(key);
+    } else {
+      tile = this.fetchFn(template.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y))).then(async (r) => {
+        if (r.status === 404 || r.status === 204) return { z, x, y, features: emptyFeatures() };
+        if (!r.ok) throw new Error(`map tile unavailable (${r.status})`);
+        return decode(await r.arrayBuffer(), x, y, z);
+      });
+      tile.catch(() => this.tiles.delete(key));
+    }
+    this.tiles.set(key, tile);
+    while (this.tiles.size > MAX_CACHED_TILES) this.tiles.delete(this.tiles.keys().next().value!);
+    return tile;
   }
 
   async load(anchor: GeoPoint, area: Bounds): Promise<MapFeatures> {
     const { z, tiles } = tilesFor(anchor, area);
+    const key = JSON.stringify([anchor.lat, anchor.lon, z, tiles]);
+    if (this.last?.key === key) return this.last.features;
     const template = await this.tileTemplate();
-    const parts = await Promise.all(
-      tiles.map(({ x, y }) => {
-        const key = `${anchor.lat},${anchor.lon}/${z}/${x}/${y}`;
-        let part = this.cache.get(key);
-        if (!part) {
-          part = this.fetchFn(template.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y)))
-            .then(async (r) => {
-              const features = emptyFeatures();
-              if (r.ok) decodeTile(await r.arrayBuffer(), x, y, z, anchor, features);
-              return features;
-            });
-          part.catch(() => this.cache.delete(key));
-          this.cache.set(key, part);
-        }
-        return part;
-      }),
-    );
-    const all = emptyFeatures();
-    for (const p of parts) for (const k of Object.keys(all) as (keyof MapFeatures)[]) (all[k] as unknown[]).push(...(p[k] as unknown[]));
-    return all;
+    const decoded = await Promise.all(tiles.map(({ x, y }) => this.tile(template, z, x, y)));
+    const features = emptyFeatures();
+    for (const tile of decoded) place(tile, anchor, features);
+    this.last = { key, features };
+    return features;
   }
 }

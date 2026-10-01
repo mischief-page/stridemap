@@ -123,6 +123,19 @@ describe('prepareWorkouts', () => {
     expect(prepared[0]!.distanceM).toBeCloseTo(300, -1);
     expect(prepared[0]!.local.bbox.maxX).toBeCloseTo(300, 0);
   });
+
+  it('gives workouts that share an id (same type, same start second) their own ids', () => {
+    const [w] = syntheticWorkouts(1);
+    const copy = { ...w!, track: { ...w!.track!, lat: w!.track!.lat.map((v) => v + 0.001) } };
+    const prepared = prepareWorkouts([w!, copy]);
+    expect(prepared.map((p) => p.id)).toEqual([w!.id, `${w!.id}#2`]);
+    // Each keeps its own "how often" values, one per point.
+    const scene = buildScene(prepared, { types: [...ACTIVITY_TYPES], from: null, to: null }, { colorMode: 'frequency', fitPercentile: 100, radialExponent: 1 });
+    for (const t of scene.tracks) {
+      expect(t.value.length).toBe(t.x.length);
+      expect(Array.from(t.value).every(Number.isFinite)).toBe(true);
+    }
+  });
 });
 
 describe('buildScene + renderSvg', () => {

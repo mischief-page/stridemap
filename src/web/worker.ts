@@ -19,9 +19,10 @@ import { syntheticWorkouts } from '../sample/synthetic';
  */
 
 export type EngineRequest =
-  | { kind: 'load-file'; size: number }
+  // Each load is numbered; only the newest one's results are kept.
+  | { kind: 'load-file'; load: number; size: number }
   | { kind: 'chunk'; id: number; buffer: ArrayBuffer }
-  | { kind: 'load-sample' }
+  | { kind: 'load-sample'; load: number }
   | { kind: 'render'; seq: number; filters: Filters; layout: LayoutOptions; style: StyleOptions; map: MapRequest | null };
 
 /** How the map went: where it's centred, how many routes are on it, or why it isn't shown. */
@@ -30,10 +31,10 @@ export type MapResult =
   | { ok: false; reason: 'no-point' | 'no-routes' | 'offline'; message?: string };
 
 export type EngineMessage =
-  | { kind: 'read'; id: number; offset: number; length: number }
-  | { kind: 'progress'; progress: Progress }
-  | { kind: 'loaded'; withGps: number; firstStart: number | null; lastStart: number | null }
-  | { kind: 'rendered'; seq: number; svg: string; shown: number; withGps: number; map: MapResult | null }
+  | { kind: 'read'; load: number; id: number; offset: number; length: number }
+  | { kind: 'progress'; load: number; progress: Progress }
+  | { kind: 'loaded'; load: number; withGps: number; firstStart: number | null; lastStart: number | null }
+  | { kind: 'rendered'; seq: number; svg: string; width: number; height: number; shown: number; withGps: number; map: MapResult | null }
   | { kind: 'error'; message: string; during: 'load' | 'render' };
 
 // Only the prepared form is kept; the raw GPS tracks are freed after loading.
@@ -56,7 +57,10 @@ const chunkWaiters = new Map<number, (buffer: ArrayBuffer) => void>();
 let nextChunkId = 0;
 
 class PageFileReader extends Reader<number> {
-  constructor(size: number) {
+  constructor(
+    size: number,
+    private readonly load: number,
+  ) {
     super(size);
     this.size = size;
   }
@@ -65,12 +69,15 @@ class PageFileReader extends Reader<number> {
     const id = nextChunkId++;
     return new Promise((resolve) => {
       chunkWaiters.set(id, (buffer) => resolve(new Uint8Array(buffer)));
-      post({ kind: 'read', id, offset, length: Math.min(length, this.size - offset) });
+      post({ kind: 'read', load: this.load, id, offset, length: Math.min(length, this.size - offset) });
     });
   }
 }
 
-function loaded(list: Workout[]) {
+/** The newest load; an older one that finishes later is ignored. */
+let currentLoad = 0;
+
+function loaded(list: Workout[], load: number) {
   const prepared = prepareWorkouts(list);
   // An export with nothing to draw leaves the data already loaded in place.
   if (!prepared.length) throw new Error(NO_ROUTES);
@@ -85,6 +92,7 @@ function loaded(list: Workout[]) {
   }
   post({
     kind: 'loaded',
+    load,
     withGps: workouts.length,
     firstStart: workouts.length ? first : null,
     lastStart: workouts.length ? last : null,
@@ -99,16 +107,22 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
     return;
   }
   const during = req.kind === 'render' ? 'render' : 'load';
+  const load = req.kind === 'render' ? 0 : req.load;
   try {
     if (req.kind === 'load-file') {
-      loaded(await readExport(new PageFileReader(req.size), (progress) => post({ kind: 'progress', progress })));
+      currentLoad = load;
+      const list = await readExport(new PageFileReader(req.size, load), (progress) => post({ kind: 'progress', load, progress }));
+      if (load === currentLoad) loaded(list, load);
     } else if (req.kind === 'load-sample') {
-      loaded(syntheticWorkouts());
+      currentLoad = load;
+      loaded(syntheticWorkouts(), load);
     } else {
       const { svg, scene, map } = await draw(req.filters, req.layout, req.style, req.map);
-      post({ kind: 'rendered', seq: req.seq, svg, shown: scene.workoutCount, withGps: workouts.length, map });
+      post({ kind: 'rendered', seq: req.seq, svg, width: req.style.width, height: req.style.height, shown: scene.workoutCount, withGps: workouts.length, map });
     }
   } catch (err) {
+    // A replaced load's failure (often caused by being replaced) isn't news.
+    if (during === 'load' && load !== currentLoad) return;
     post({ kind: 'error', message: err instanceof Error ? err.message : String(err), during });
   }
 };
