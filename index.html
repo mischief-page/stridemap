@@ -24,7 +24,7 @@
             <strong class="for-touch">Choose your export zip</strong>
             <span><span class="for-pointer">or click to choose it. </span>Apple Health or Strava. It stays on this device.</span>
           </label>
-          <details class="howto" id="howto" open>
+          <details class="howto" id="howto">
             <summary>How do I get my export?</summary>
             <p><strong>Apple Health</strong>, on your iPhone:</p>
             <ol>
@@ -66,6 +66,53 @@
             <button type="button" data-range="last" aria-pressed="false">Last year</button>
           </div>
           <small id="dataRange"></small>
+        </details>
+
+        <details class="group">
+          <summary>Size &amp; scale</summary>
+          <div class="row">
+            <label>Print shape
+              <select id="aspect">
+                <option value="3:2">3:2 (12×18, 24×36 in)</option>
+                <option value="4:3">4:3 (18×24 in)</option>
+                <option value="5:4">5:4 (8×10, 16×20 in)</option>
+                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
+                <option value="iso">A4 / A3 / A2</option>
+                <option value="16:9">16:9 (screen)</option>
+                <option value="1:1">Square</option>
+              </select>
+            </label>
+            <fieldset class="row" id="orientation">
+              <legend class="visually-hidden">Orientation</legend>
+              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
+              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
+            </fieldset>
+          </div>
+          <label for="fit">Fit <output id="fitOut"></output></label>
+          <input type="range" id="fit" min="50" max="100" step="1" value="95" aria-describedby="fitHelp" />
+          <div class="ends" aria-hidden="true"><span>Zoom in</span><span>Every route</span></div>
+          <small id="fitHelp">How many routes fit fully in the picture; the rest run off the edge.</small>
+          <label for="squash">Long routes <output id="squashOut"></output></label>
+          <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" aria-describedby="squashHelp" />
+          <div class="ends" aria-hidden="true"><span>Pull them in</span><span>True scale</span></div>
+          <small id="squashHelp">Pulling in keeps each route's direction but shortens long ones, so the scale becomes rings.</small>
+          <div class="row">
+            <label>Scale
+              <select id="scale">
+                <option value="bar">Bar</option>
+                <option value="rings">Distance rings</option>
+                <option value="off">None</option>
+              </select>
+            </label>
+            <label>Units
+              <select id="units">
+                <option value="km">km</option>
+                <option value="mi">miles</option>
+              </select>
+            </label>
+            <label>Scale color <input type="color" id="scaleColor" /></label>
+            <button type="button" id="scaleColorAuto" class="small" hidden>Auto</button>
+          </div>
         </details>
 
         <details class="group">
@@ -173,53 +220,6 @@
               <button type="button" id="legendColorAuto" class="small" hidden>Auto</button>
             </div>
           </fieldset>
-        </details>
-
-        <details class="group">
-          <summary>Size &amp; scale</summary>
-          <div class="row">
-            <label>Print shape
-              <select id="aspect">
-                <option value="3:2">3:2 (12×18, 24×36 in)</option>
-                <option value="4:3">4:3 (18×24 in)</option>
-                <option value="5:4">5:4 (8×10, 16×20 in)</option>
-                <option value="7:5">7:5 (5×7 in, 50×70 cm)</option>
-                <option value="iso">A4 / A3 / A2</option>
-                <option value="16:9">16:9 (screen)</option>
-                <option value="1:1">Square</option>
-              </select>
-            </label>
-            <fieldset class="row" id="orientation">
-              <legend class="visually-hidden">Orientation</legend>
-              <label><input type="radio" name="orientation" value="landscape" checked /> Landscape</label>
-              <label><input type="radio" name="orientation" value="portrait" /> Portrait</label>
-            </fieldset>
-          </div>
-          <label for="fit">Fit <output id="fitOut"></output></label>
-          <input type="range" id="fit" min="50" max="100" step="1" value="95" aria-describedby="fitHelp" />
-          <div class="ends" aria-hidden="true"><span>Zoom in</span><span>Every route</span></div>
-          <small id="fitHelp">How many routes fit fully in the picture; the rest run off the edge.</small>
-          <label for="squash">Long routes <output id="squashOut"></output></label>
-          <input type="range" id="squash" min="0.3" max="1" step="0.05" value="1" aria-describedby="squashHelp" />
-          <div class="ends" aria-hidden="true"><span>Pull them in</span><span>True scale</span></div>
-          <small id="squashHelp">Pulling in keeps each route's direction but shortens long ones, so the scale becomes rings.</small>
-          <div class="row">
-            <label>Scale
-              <select id="scale">
-                <option value="bar">Bar</option>
-                <option value="rings">Distance rings</option>
-                <option value="off">None</option>
-              </select>
-            </label>
-            <label>Units
-              <select id="units">
-                <option value="km">km</option>
-                <option value="mi">miles</option>
-              </select>
-            </label>
-            <label>Scale color <input type="color" id="scaleColor" /></label>
-            <button type="button" id="scaleColorAuto" class="small" hidden>Auto</button>
-          </div>
         </details>
 
         <details class="group">

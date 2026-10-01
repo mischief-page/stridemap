@@ -94,7 +94,7 @@ For people whose routes mostly start from the same place (home), a translucent s
 - **Offline or failed:** routes are drawn as usual, without the map, and the page says so.
 
 ### Style presets
-Five finished looks someone can pick and be happy with, shown as cards at the top of the editor, with the title and name fields right under them. The page opens on Afterglow, showing an example poster made from the sample data (labelled as an example) until someone loads their own export. Each is an 18×24 in portrait poster (the size competitors and our catalog center on) with "How often" coloring, the legend in its own band, and totals plus dates under the title.
+Five finished looks someone can pick and be happy with, shown as cards at the top of the editor, with the title and name fields right under them. The page opens on Ember, showing an example poster made from the sample data (labelled as an example) until someone loads their own export. Each is an 18×24 in portrait poster (the size competitors and our catalog center on) with "How often" coloring, the legend in its own band, and totals plus dates under the title.
 
 | Preset | Look | Legend |
 | --- | --- | --- |
@@ -123,9 +123,9 @@ Formatting and placement:
 The title also becomes the SVG's `<title>`. All user text is XML-escaped.
 
 ## The page
-- **First visit:** the page opens on an example poster from the sample data, with a badge saying so and a "Use my export" button, so there's something to look at and play with straight away. The how-to for getting an export (Apple Health on iPhone, including *Save to Files*; Strava's archive) is open until the person's own data loads.
+- **First visit:** the page opens on an example poster from the sample data, with a badge saying so and a "Use my export" button, so there's something to look at and play with straight away. The how-to for getting an export (Apple Health on iPhone, including *Save to Files*; Strava's archive) is one click away, under the drop zone.
 - **Loading:** a progress overlay on the poster shows the stage and how far through it is. The previous data stays loaded until the new file succeeds, so a bad file never leaves the page stuck. Files that aren't zips are refused before reading; errors are worded as next steps and shown as an alert, not as status text.
-- **Controls:** Your data, then Style (open, with the title and name), then Workouts, Colors, Lines, Text, Size & scale, and Background style, all collapsible. Background style is a three-way switch (None / Street map / Distance) with its strength right under it; each choice's own settings follow as labelled dropdowns whose one-line help changes with the choice. Sliders with internal numbers say what their ends mean ("Zoom in" ↔ "Every route"). The color labels follow the mode (Slow/Fast or Rarely/Often). Typing a title or name turns the text on.
+- **Controls:** Your data, then Style (open, with the title and name), then Workouts, Size & scale, Colors, Lines, Text, and Background style, all collapsible. Background style is a three-way switch (None / Street map / Distance) with its strength right under it; each choice's own settings follow as labelled dropdowns whose one-line help changes with the choice. Sliders with internal numbers say what their ends mean ("Zoom in" ↔ "Every route"). The color labels follow the mode (Slow/Fast or Rarely/Often). Typing a title or name turns the text on.
 - **Layout:** the poster stays in view while the controls scroll (sticky beside them on wide screens, pinned to the top on phones). On touch screens the drop zone says "Choose your export zip".
 - **Downloads:** PNG for sharing (2× the image) or for printing (as large as browsers reliably draw: about 16.7 million pixels, Safari's canvas limit; the option says how large it prints sharply at 300 ppi), and SVG. Files are named after the title and style, e.g. `my-workouts-afterglow.png`.
 - **Accessibility:** the file input is visually hidden but focusable; the style cards are one radio group (arrow keys move and pick); help text is linked with `aria-describedby`; the preview's alt text names the poster and how many workouts it shows.

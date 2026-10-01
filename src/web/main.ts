@@ -36,8 +36,6 @@ const engine = createEngine({
     const month = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
     $('dataRange').textContent = `Your data: ${withGps} workouts with GPS, ${month(firstStart!)} – ${month(lastStart!)}.`;
     source = reading ? { kind: 'file', name: reading } : { kind: 'sample' };
-    // Own data replaces the example; the how-to has done its job.
-    if (reading) ($<HTMLDetailsElement>('howto').open = false);
     reading = null;
     $('loading').hidden = true;
     $('exampleBadge').hidden = source.kind !== 'sample';
@@ -312,7 +310,7 @@ function updatePngSizes() {
   }
 }
 
-/** "my-workouts-afterglow", from the title and the style. */
+/** "my-workouts-ember", from the title and the style. */
 function fileName(): string {
   const slug = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   return [slug(current.title || DEFAULT_TITLE) || 'stridemap', activePresetId ?? 'custom'].join('-');
@@ -339,7 +337,7 @@ $('downloadPng').addEventListener('click', async () => {
 // Miles where people run in miles; kilometers everywhere else.
 writeState({ units: /^en-(US|LR)|^my/.test(navigator.language) ? 'mi' : 'km' });
 // The page opens on a finished poster style.
-applyPreset(PRESETS.find((p) => p.id === 'afterglow')!);
+applyPreset(PRESETS.find((p) => p.id === 'ember')!);
 refresh();
 // The page opens on an example poster from the sample data, so there's
 // something to see (and play with) before anyone finds their export.

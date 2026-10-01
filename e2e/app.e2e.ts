@@ -36,14 +36,14 @@ test.beforeEach(({ page }) => {
 });
 test.afterEach(() => expect(errors).toEqual([]));
 
-test('opens on the Afterglow poster with sample data', async ({ page }) => {
+test('opens on the Ember poster with sample data', async ({ page }) => {
   await visit(page, `${PAGE}?sample`);
   await settled(page);
   const svg = await previewSvg(page);
   expect(svg).toContain('viewBox="0 0 1200 1600"');
   expect(svg).toContain('>My Workouts<');
   expect(svg).toMatch(/\d+ activities · [\d,]+ (mi|km)/);
-  expect(await activePreset(page)).toBe('afterglow');
+  expect(await activePreset(page)).toBe('ember');
   await expect(page.locator('#status')).toContainText('300 of 300');
 });
 
@@ -79,7 +79,7 @@ test('own text keeps the preset; look changes make it custom', async ({ page }) 
   await settled(page);
   await page.fill('#title', 'My Year');
   await settled(page);
-  expect(await activePreset(page)).toBe('afterglow');
+  expect(await activePreset(page)).toBe('ember');
   expect(await previewSvg(page)).toContain('>My Year<');
 
   await page.fill('#colorB', '#ff0000');
@@ -107,7 +107,7 @@ test('downloads the SVG', async ({ page }) => {
   await settled(page);
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#downloadSvg')]);
   // Named after the title and the style.
-  expect(download.suggestedFilename()).toBe('my-workouts-afterglow.svg');
+  expect(download.suggestedFilename()).toBe('my-workouts-ember.svg');
 });
 
 test('the made-with mark is on by default and can be turned off', async ({ page }) => {
@@ -118,7 +118,7 @@ test('the made-with mark is on by default and can be turned off', async ({ page 
   await settled(page);
   expect(await previewSvg(page)).not.toContain('made with');
   // Keeping or removing the mark is the person's choice, not part of the style.
-  expect(await activePreset(page)).toBe('afterglow');
+  expect(await activePreset(page)).toBe('ember');
 });
 
 test('the footer links to the privacy page', async ({ page }) => {
@@ -140,7 +140,7 @@ test('Style starts open, the other groups closed, and they open on click', async
   await expect(page.locator('#drop')).toBeVisible();
   await expect(page.locator('#title')).toBeVisible();
   await expect(page.locator('#downloadPng')).toBeVisible();
-  await expect(page.locator('#styleHint')).toHaveText('Afterglow');
+  await expect(page.locator('#styleHint')).toHaveText('Ember');
   await expect(page.locator('#colorB')).toBeHidden();
   await page.click('summary:has-text("Colors")');
   await expect(page.locator('#colorB')).toBeVisible();
@@ -167,7 +167,7 @@ test('a file that fails to load leaves the current poster working', async ({ pag
   await expect(page.locator('#exampleBadge')).toBeVisible();
   // The sample is still loaded, and changes still redraw it.
   const before = await previewSvg(page);
-  await page.click('#presetCards [data-id="ember"]');
+  await page.click('#presetCards [data-id="gallery"]');
   await expect.poll(() => previewSvg(page)).not.toBe(before);
   await expect(page.locator('#status')).toContainText('Sample data');
 });
@@ -221,7 +221,7 @@ test('the order panel is hidden until switched on, and sets the print shape', as
   await expect(page.locator('#products .product')).toHaveCount(6);
   await page.click('.product[data-id="metal-16x20"]');
   await settled(page);
-  // 16×20 is 5:4; the Afterglow poster is portrait, so 1200×1500.
+  // 16×20 is 5:4; the opening poster is portrait, so 1200×1500.
   expect(await previewSvg(page)).toContain('viewBox="0 0 1200 1500"');
   await expect(page.locator('#productNote')).toContainText('$189');
   // A print shape that doesn't fit clears the choice.

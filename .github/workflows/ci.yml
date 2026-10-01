@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# A newer push to the same branch cancels an older run still testing, so an
+# older commit can never deploy after a newer one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
