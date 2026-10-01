@@ -189,14 +189,14 @@ function mapStatus(map: MapResult | null): string {
       offline: "Couldn't load the map (are you offline?). Routes are drawn without it.",
     }[map.reason];
   }
-  const where = map.detected ? 'where most routes start' : `${map.at.lat.toFixed(4)}, ${map.at.lon.toFixed(4)}`;
-  const status = [`Map centred on ${where}. ${map.near} routes start here.`];
+  const where = map.detected ? '' : ` (${map.at.lat.toFixed(4)}, ${map.at.lon.toFixed(4)})`;
+  const status = [`${map.near} routes start at the center${where}.`];
   if (map.elsewhere) {
     status.push(
       {
-        omit: `${map.elsewhere} starting elsewhere are left out.`,
-        true: `${map.elsewhereDrawn} of ${map.elsewhere} starting elsewhere cross the picture and are drawn.`,
-        anchored: `${map.elsewhere} starting elsewhere are drawn from this point.`,
+        omit: `${map.elsewhere} from elsewhere left out.`,
+        true: `${map.elsewhereDrawn} of ${map.elsewhere} from elsewhere drawn.`,
+        anchored: `${map.elsewhere} from elsewhere drawn from the center.`,
       }[map.others],
     );
   }

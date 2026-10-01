@@ -224,47 +224,54 @@
 
         <details class="group">
           <summary>Behind the routes</summary>
-          <fieldset id="underlay">
-            <label><input type="radio" name="underlay" value="none" checked /> None</label>
-            <label><input type="radio" name="underlay" value="map" /> Street map</label>
-            <label><input type="radio" name="underlay" value="distance" /> Distance over time</label>
+          <fieldset class="segmented" id="underlay">
+            <legend class="visually-hidden">Behind the routes</legend>
+            <label><input type="radio" name="underlay" value="none" checked /><span>None</span></label>
+            <label><input type="radio" name="underlay" value="map" /><span>Street map</span></label>
+            <label><input type="radio" name="underlay" value="distance" /><span>Distance</span></label>
           </fieldset>
-          <fieldset id="mapFields" hidden>
-            <small>A street map, for when most routes start from the same place. Routes starting there are drawn where they really went, so they follow the streets on the map.</small>
-            <fieldset id="mapPlace">
-              <label><input type="radio" name="mapPlace" value="detected" checked /> Where most routes start</label>
-              <label><input type="radio" name="mapPlace" value="custom" /> A place I choose</label>
-            </fieldset>
+          <small id="underlayHint">Nothing behind the routes.</small>
+          <label id="underlayStrengthField" hidden>Strength <output id="underlayStrengthOut"></output>
+            <input type="range" id="underlayStrength" min="0.05" max="0.8" step="0.05" value="0.25" />
+          </label>
+
+          <div id="mapFields" class="subgroup" hidden>
+            <label>Center on
+              <select id="mapPlace">
+                <option value="detected">Where most routes start</option>
+                <option value="custom">A place I choose</option>
+              </select>
+            </label>
             <div id="mapCustom" hidden>
               <label>Coordinates <input type="text" id="mapAt" placeholder="41.8781, -87.6298" inputmode="decimal" autocomplete="off" /></label>
-              <div class="row">
-                <label>or an address <input type="text" id="mapAddress" placeholder="Street, city" autocomplete="off" /></label>
+              <label for="mapAddress">or an address</label>
+              <div class="inline-field">
+                <input type="text" id="mapAddress" placeholder="Street, city" autocomplete="off" />
                 <button type="button" id="mapFind" class="small">Find</button>
               </div>
-              <small id="mapFindNote">Find sends only the address you typed to OpenStreetMap's Nominatim search.</small>
+              <small id="mapFindNote">Find sends only the address you typed to OpenStreetMap's search.</small>
             </div>
-            <fieldset id="mapOthers">
-              <legend>Routes starting elsewhere (over 300 m away)</legend>
-              <label><input type="radio" name="mapOthers" value="true" checked /> Where they really went <small>(if they cross the picture)</small></label>
-              <label><input type="radio" name="mapOthers" value="anchored" /> From the map's point <small>(won't match the streets)</small></label>
-              <label><input type="radio" name="mapOthers" value="omit" /> Leave out</label>
-            </fieldset>
-            <p id="mapStatus" role="status"></p>
-            <small>Map tiles come from <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> (© OpenMapTiles, data © OpenStreetMap contributors). Loading them tells OpenFreeMap roughly which area you're looking at, to within a few km; your routes stay on your device. Squash is off while the map is shown.</small>
-          </fieldset>
-          <fieldset id="distanceFields" hidden>
-            <small>A faint chart of the distance you covered over the dates shown, rising from the bottom, in your two colors.</small>
-            <label>Show
+            <label>Routes starting elsewhere
+              <select id="mapOthers" aria-describedby="mapOthersHint">
+                <option value="true">Draw where they went</option>
+                <option value="anchored">Draw from the map's center</option>
+                <option value="omit">Leave out</option>
+              </select>
+            </label>
+            <small id="mapOthersHint"></small>
+            <p id="mapStatus" class="info" role="status"></p>
+            <small>Map data © OpenStreetMap contributors, tiles from <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>, which sees roughly which area is shown. Your routes stay on this device.</small>
+          </div>
+
+          <div id="distanceFields" class="subgroup" hidden>
+            <label>Chart
               <select id="distanceShape">
                 <option value="total">Running total (climbs over time)</option>
                 <option value="monthly">Distance per month (peaks and valleys)</option>
               </select>
             </label>
             <label class="inline"><input type="checkbox" id="distanceMarkers" /> Milestone markers</label>
-          </fieldset>
-          <label id="underlayStrengthField" hidden>Strength <output id="underlayStrengthOut"></output>
-            <input type="range" id="underlayStrength" min="0.05" max="0.8" step="0.05" value="0.25" />
-          </label>
+          </div>
         </details>
 
         <section id="downloadSection">

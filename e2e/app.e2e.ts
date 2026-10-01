@@ -243,24 +243,24 @@ test('draws a street map behind the routes when asked, from mocked tiles', async
   expect(await previewSvg(page)).not.toContain('class="map"');
 
   await page.check('#underlay input[value="map"]');
-  await expect(page.locator('#mapStatus')).toContainText('where most routes start');
+  await expect(page.locator('#mapStatus')).toContainText('routes start at the center');
   await settled(page);
   const svg = await previewSvg(page);
   expect(svg).toContain('class="map"');
   expect(svg).toContain('OpenStreetMap contributors');
   expect(tiles.length).toBeGreaterThan(0);
   // By default routes from elsewhere are drawn where they went, if they cross the picture.
-  await expect(page.locator('#mapStatus')).toContainText('232 routes start here');
-  await expect(page.locator('#mapStatus')).toContainText('of 68 starting elsewhere cross the picture');
-  await page.check('#mapOthers input[value="omit"]');
+  await expect(page.locator('#mapStatus')).toContainText('232 routes start at the center');
+  await expect(page.locator('#mapStatus')).toContainText('of 68 from elsewhere drawn');
+  await page.selectOption('#mapOthers', 'omit');
   await expect(page.locator('#status')).toContainText('232 of 300');
-  await expect(page.locator('#mapStatus')).toContainText('68 starting elsewhere are left out');
-  await page.check('#mapOthers input[value="anchored"]');
+  await expect(page.locator('#mapStatus')).toContainText('68 from elsewhere left out');
+  await page.selectOption('#mapOthers', 'anchored');
   await expect(page.locator('#status')).toContainText('300 of 300');
   await expect(page.locator('#squash')).toBeDisabled();
 
   // A point typed by hand; far from every route, so the map is off and routes are drawn as usual.
-  await page.check('#mapPlace input[value="custom"]');
+  await page.selectOption('#mapPlace', 'custom');
   await page.fill('#mapAt', '10, 10');
   await expect(page.locator('#mapStatus')).toContainText('No routes shown start within 300 m');
   await settled(page);

@@ -26,9 +26,9 @@ const CONTROLS: { [K in keyof EditorState]: Kind } = {
   underlayStrength: 'number',
   distanceShape: 'value',
   distanceMarkers: 'checkbox',
-  mapPlace: 'radio',
+  mapPlace: 'value',
   mapAt: 'value',
-  mapOthers: 'radio',
+  mapOthers: 'value',
   colorMode: 'radio',
   fit: 'number',
   squash: 'number',
@@ -150,9 +150,23 @@ export function refresh(): void {
   byId('mapFields').hidden = s.underlay !== 'map';
   byId('distanceFields').hidden = s.underlay !== 'distance';
   byId('underlayStrengthField').hidden = s.underlay === 'none';
+  byId('underlayHint').textContent = {
+    none: 'Nothing behind the routes.',
+    map: 'A faint street map. Best when most routes start from the same place: those are drawn where they really went.',
+    distance: 'A faint chart of the distance you covered over the dates shown.',
+  }[s.underlay];
+  byId('mapOthersHint').textContent = {
+    true: 'Drawn in their true place too, if they cross the picture.',
+    anchored: "Every route is kept, but these won't line up with the streets.",
+    omit: 'Only routes that start at the map’s center are drawn.',
+  }[s.mapOthers];
   byId('mapCustom').hidden = s.mapPlace !== 'custom';
   // Squashing would pull routes off the streets they ran on.
   field('squash').disabled = s.underlay === 'map';
+  byId('squashHelp').textContent =
+    s.underlay === 'map'
+      ? 'Off while the street map is shown, so routes stay on their streets.'
+      : "Pulling in keeps each route's direction but shortens long ones, so the scale becomes rings.";
   for (const key of KEYS) {
     if (CONTROLS[key] !== 'autoColor') continue;
     if (!chosen[key]) field(key).value = inkFor(s.background);
