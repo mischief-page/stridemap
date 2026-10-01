@@ -1,4 +1,4 @@
-import { formatHex, interpolate } from 'culori';
+import { blend } from './color';
 import type { Scene } from '../core/pipeline';
 import type { MapFeatures } from '../core/types';
 import { renderMark } from './brand';
@@ -206,10 +206,10 @@ function routeShapes(scene: Scene, style: StyleOptions, scale: number, ox: numbe
 
 function drawRoutes(scene: Scene, style: StyleOptions, scale: number, ox: number, oy: number, cache: RouteShapeCache): string {
   const paths = routeShapes(scene, style, scale, ox, oy, cache);
-  const color = interpolate([style.colorA, style.colorB], 'oklch');
+  const color = blend(style.colorA, style.colorB);
   const blendStyle = style.blend === 'normal' ? '' : ` style="mix-blend-mode:${style.blend}"`;
   // Hotter bins are drawn last so they sit on top.
   return paths
-    .map((d, i) => (d ? `<path stroke="${formatHex(color(i / (BINS - 1)))}"${blendStyle} d="${d}"/>` : ''))
+    .map((d, i) => (d ? `<path stroke="${color(i / (BINS - 1))}"${blendStyle} d="${d}"/>` : ''))
     .join('\n');
 }

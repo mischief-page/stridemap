@@ -23,7 +23,7 @@ npm install
 npm run build:single   # writes dist-single/stridemap.html
 ```
 
-`stridemap.html` is fully self-contained (about 390 KB). Double-click it to open it in your browser. No server or internet connection is needed, and you can copy it anywhere.
+`stridemap.html` is fully self-contained (about 270 KB). Double-click it to open it in your browser. No server or internet connection is needed, and you can copy it anywhere.
 
 ## Develop
 

@@ -1,4 +1,4 @@
-import { formatHex, interpolate } from 'culori';
+import { blend } from './color';
 import { round1 as r } from './format';
 import { inkFor } from './ink';
 import { niceRound } from './scale';
@@ -70,7 +70,7 @@ export function renderDistance(timeline: TimelinePoint[], style: DistanceStyle, 
   const unit = Math.min(f.width, f.height) / 1200;
   // Color A is usually close to the background (it's for rarely used
   // streets), so the chart starts partway along the scale to stay visible.
-  const start = formatHex(interpolate([f.colorA, f.colorB], 'oklch')(0.4));
+  const start = blend(f.colorA, f.colorB)(0.4);
 
   const yOf = (v: number) => bottom - (v / max) * f.height * PEAK;
   const markers = style.markers ? renderMarkers(style, f, pts.map((p, i) => ({ x: xy[i]![0], v: p.v })), max, yOf, unit, monthly ? 'mo' : 'wk') : null;

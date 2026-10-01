@@ -1,4 +1,4 @@
-import { Uint8ArrayWriter, type FileEntry } from '@zip.js/zip.js';
+import { Uint8ArrayWriter, type FileEntry } from '@zip.js/zip.js/lib/zip-core-native.js';
 import type { Workout } from '../core/types';
 import { ExportXmlParser } from './export-xml';
 import { parseGpx } from './gpx';

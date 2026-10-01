@@ -1,4 +1,4 @@
-import { Uint8ArrayWriter, type FileEntry } from '@zip.js/zip.js';
+import { Uint8ArrayWriter, type FileEntry } from '@zip.js/zip.js/lib/zip-core-native.js';
 import type { ActivityType, Track, Workout } from '../core/types';
 import { parseCsv } from './csv';
 import { parseFit } from './fit';

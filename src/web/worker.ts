@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { Reader } from '@zip.js/zip.js';
+import { Reader } from '@zip.js/zip.js/lib/zip-core-native.js';
 import { prepareWorkouts } from '../core/pipeline';
 import type { Workout } from '../core/types';
 import { readExport, type Progress } from '../parse/import';

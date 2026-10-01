@@ -1,4 +1,4 @@
-import { BlobReader, ZipReader, type FileEntry, type Reader } from '@zip.js/zip.js';
+import { BlobReader, ZipReader, type FileEntry, type Reader } from '@zip.js/zip.js/lib/zip-core-native.js';
 import type { Workout } from '../core/types';
 import { readHealthEntries, type Progress } from './health-export';
 import { findStravaCsv, readStravaEntries } from './strava-export';

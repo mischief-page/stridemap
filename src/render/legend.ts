@@ -1,4 +1,4 @@
-import { formatHex, interpolate } from 'culori';
+import { blend } from './color';
 import type { ActivityType } from '../core/types';
 import { inkFor } from './ink';
 import { LEGEND_FONTS, type DateFormat, type LegendOptions, type Units } from './style';
@@ -164,8 +164,8 @@ const KEY_BAR_CHARS = 8;
 
 /** The key's gradient, blended the same way as the routes (in OKLCH). */
 function keyGradientDef([a, b]: [string, string]): string {
-  const color = interpolate([a, b], 'oklch');
-  const stops = [0, 0.25, 0.5, 0.75, 1].map((t) => `<stop offset="${t}" stop-color="${formatHex(color(t))}"/>`).join('');
+  const color = blend(a, b);
+  const stops = [0, 0.25, 0.5, 0.75, 1].map((t) => `<stop offset="${t}" stop-color="${color(t)}"/>`).join('');
   return `<defs><linearGradient id="${KEY_GRADIENT_ID}">${stops}</linearGradient></defs>`;
 }
 
