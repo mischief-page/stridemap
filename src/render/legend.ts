@@ -1,7 +1,7 @@
 import { blend } from './color';
 import type { ActivityType } from '../core/types';
 import { inkFor } from './ink';
-import { LEGEND_FONTS, type DateFormat, type LegendOptions, type Units } from './style';
+import { LEGEND_FONTS, METERS_PER, type DateFormat, type LegendOptions, type Units } from './style';
 import { round1 as r } from './format';
 
 export function formatDateRange(range: [number, number], format: DateFormat, locale?: string): string {
@@ -50,7 +50,7 @@ export function formatStats(facts: LegendFacts, locale?: string): string {
         ? ['walk or run', 'walks & runs']
         : ['activity', 'activities'];
   const n = new Intl.NumberFormat(locale);
-  const distance = facts.distanceM / (facts.units === 'mi' ? 1609.344 : 1000);
+  const distance = facts.distanceM / METERS_PER[facts.units];
   return `${n.format(facts.count)} ${facts.count === 1 ? one : many} · ${n.format(Math.round(distance))} ${facts.units}`;
 }
 

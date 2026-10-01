@@ -62,7 +62,7 @@ export function fitBounds(tracks: LocalTrack[], percentile: number): Bounds {
 }
 
 /** Most values that are sorted to find quantiles; larger inputs are evenly sampled. */
-const MAX_QUANTILE_SAMPLE = 200_000;
+export const MAX_QUANTILE_SAMPLE = 200_000;
 
 /**
  * Several quantiles from one sort. Millions of GPS points are sampled down

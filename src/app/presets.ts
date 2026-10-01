@@ -1,13 +1,13 @@
 import type { Look } from './settings';
 
+/** The title a preset gives a poster that has none, so it reads as finished. */
+export const DEFAULT_TITLE = 'My Workouts';
+
 /**
  * Finished looks someone can pick and be happy with. A preset sets every look
  * setting, and never the person's own choices: filters, title and name text,
  * and units.
  */
-/** The title a preset gives a poster that has none, so it reads as finished. */
-export const DEFAULT_TITLE = 'My Workouts';
-
 export interface Preset {
   id: string;
   name: string;

@@ -1,5 +1,5 @@
 import { inkFor } from '../render/ink';
-import type { EditorState } from '../app/settings';
+import { DEFAULT_STATE, type EditorState } from '../app/settings';
 
 /**
  * The page's controls, one per setting. Each control's element id is the
@@ -95,7 +95,8 @@ export function readState(): EditorState {
         s[key] = field(key).checked;
         break;
       case 'radio':
-        s[key] = document.querySelector<HTMLInputElement>(`#${key} input:checked`)!.value;
+        // Nothing checked can't normally happen, but falls back to the default rather than crashing.
+        s[key] = document.querySelector<HTMLInputElement>(`#${key} input:checked`)?.value ?? DEFAULT_STATE[key];
         break;
       case 'checkboxes':
         s[key] = [...document.querySelectorAll<HTMLInputElement>(`#${key} input:checked`)].map((el) => el.value);

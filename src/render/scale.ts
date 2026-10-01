@@ -1,5 +1,5 @@
 import { inkFor } from './ink';
-import { METERS_PER, type ScaleStyle, type Units } from './style';
+import { LEGEND_FONTS, METERS_PER, type ScaleStyle, type Units } from './style';
 import { round1 as r } from './format';
 
 /** Frame the scale is drawn in: pixels per meter and the anchor's screen position. */
@@ -54,7 +54,7 @@ export function renderScale(
   const fontSize = Math.round(Math.min(frame.width, frame.height) / 75);
   // A halo in the background color keeps labels readable over dense routes.
   const text =
-    `font-family="${frame.fontFamily ?? "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"}" font-size="${fontSize}" ` +
+    `font-family="${frame.fontFamily ?? LEGEND_FONTS.sans}" font-size="${fontSize}" ` +
     `fill="${ink}" stroke="${background}" stroke-width="${fontSize / 3}" stroke-opacity="0.9" stroke-linejoin="round" paint-order="stroke"`;
   // Automatic rings stay faint so they don't compete with the routes; a chosen
   // color is meant to be seen, so it's drawn stronger.

@@ -2,3 +2,6 @@
 export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+/** Rounds to two decimals, for opacities. */
+export const round2 = (n: number): number => Math.round(n * 100) / 100;

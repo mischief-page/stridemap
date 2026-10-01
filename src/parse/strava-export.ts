@@ -5,6 +5,7 @@ import { parseFit } from './fit';
 import { parseGpx } from './gpx';
 import type { Progress } from './health-export';
 import { parseTcx } from './tcx';
+import { lastTwoParts as tail } from './zip-path';
 
 /**
  * Reads the zip from Strava's "Download your account" request: activities.csv
@@ -94,8 +95,6 @@ export async function readStravaEntries(files: FileEntry[], onProgress?: (p: Pro
   return workouts;
 }
 
-/** "activities/123.fit.gz" from any path to it. */
-const tail = (path: string) => path.split('/').slice(-2).join('/');
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

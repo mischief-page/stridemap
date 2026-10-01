@@ -3,7 +3,7 @@ import type { Scene } from '../core/pipeline';
 import type { MapFeatures } from '../core/types';
 import { renderMark } from './brand';
 import { round1 as r } from './format';
-import { escapeXml, renderLegend } from './legend';
+import { escapeXml, formatStats, renderLegend } from './legend';
 import { artFrame, legendFacts } from './frame';
 import { renderScale, scaleUsesRings } from './scale';
 import { pencilFilter, pencilPath } from './pencil';
@@ -83,7 +83,7 @@ export function renderSvg(scene: Scene, style: StyleOptions, mapFeatures?: MapFe
   // art has its own <svg> too, clipping routes that run off its edge (or into
   // the text band) while keeping canvas coordinates.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-<title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${scene.workoutCount} walks and runs`)}</title>
+<title>${escapeXml(style.legend.show && style.legend.title.trim() ? style.legend.title.trim() : `stridemap: ${formatStats(facts)}`)}</title>
 <svg width="${W}" height="${H}">
 <rect width="100%" height="100%" fill="${style.background}"/>
 ${grain ? `<defs>${pencilFilter(GRAIN_FILTER_ID, W, H, style.pencil!.grain)}</defs>` : ''}

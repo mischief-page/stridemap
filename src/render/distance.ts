@@ -1,8 +1,8 @@
 import { blend } from './color';
-import { round1 as r } from './format';
+import { round1 as r, round2 as r2 } from './format';
 import { inkFor } from './ink';
 import { niceRound } from './scale';
-import { METERS_PER, type DistanceStyle, type Units } from './style';
+import { LEGEND_FONTS, METERS_PER, type DistanceStyle, type Units } from './style';
 
 /** A workout on the timeline: start time (Unix ms) and GPS distance (m). */
 export interface TimelinePoint {
@@ -84,7 +84,6 @@ ${markers ? markers.labels : ''}
 </g>`;
 }
 
-const r2 = (v: number) => Math.round(v * 100) / 100;
 
 /** The running total, sampled at most once per pixel column. */
 function runningTotal(timeline: TimelinePoint[], width: number): { t: number; v: number }[] {
@@ -173,6 +172,6 @@ function renderMarkers(
   }
   return {
     lines: `<path d="${lines.join('')}" fill="none" stroke="${f.background}" stroke-width="${r(1.5 * unit)}" clip-path="url(#${CLIP_ID})"/>`,
-    labels: `<g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="${r(size)}" fill="${inkFor(f.background)}" fill-opacity="${r2(Math.min(0.6, 0.2 + style.strength))}" letter-spacing="0.3">${labels.join('')}</g>`,
+    labels: `<g font-family="${LEGEND_FONTS.sans}" font-size="${r(size)}" fill="${inkFor(f.background)}" fill-opacity="${r2(Math.min(0.6, 0.2 + style.strength))}" letter-spacing="0.3">${labels.join('')}</g>`,
   };
 }

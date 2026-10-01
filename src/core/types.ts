@@ -2,10 +2,7 @@ export type ActivityType = 'walking' | 'running' | 'hiking';
 
 export const ACTIVITY_TYPES: ActivityType[] = ['walking', 'running', 'hiking'];
 
-/**
- * A GPS track stored as parallel typed arrays, which keeps memory small and
- * lets tracks move between a Web Worker and the page without copying.
- */
+/** A GPS track stored as parallel typed arrays, which keeps memory small. */
 export interface Track {
   /** Unix time in milliseconds. */
   t: Float64Array;

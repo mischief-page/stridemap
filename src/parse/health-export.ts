@@ -2,6 +2,7 @@ import { Uint8ArrayWriter, type FileEntry } from '@zip.js/zip.js/lib/zip-core-na
 import type { Workout } from '../core/types';
 import { ExportXmlParser } from './export-xml';
 import { parseGpx } from './gpx';
+import { lastTwoParts } from './zip-path';
 
 export type Progress =
   | { stage: 'workouts'; done: number; total: number }
@@ -33,7 +34,7 @@ export async function readHealthEntries(files: FileEntry[], onProgress?: (p: Pro
   await Promise.all([parse(), written]);
   const entries = parser.close();
 
-  const routes = new Map(files.map((f) => [routeKey(f.filename), f]));
+  const routes = new Map(files.map((f) => [lastTwoParts(f.filename), f]));
   const utf8 = new TextDecoder();
   const workouts: Workout[] = [];
   let routesRead = 0;
@@ -42,7 +43,7 @@ export async function readHealthEntries(files: FileEntry[], onProgress?: (p: Pro
   for (const e of entries) {
     let track = null;
     if (e.routePath && !e.indoor) {
-      const file = routes.get(routeKey(e.routePath));
+      const file = routes.get(lastTwoParts(e.routePath));
       // Bytes plus TextDecoder rather than zip.js's TextWriter, which goes via a
       // Blob: Safari won't let a worker read Blobs on a page opened from disk.
       if (file) track = parseGpx(utf8.decode(await file.getData(new Uint8ArrayWriter())));
@@ -75,14 +76,6 @@ function findExportXml(files: FileEntry[]): FileEntry | undefined {
     topLevelXml.find((f) => f.filename.endsWith('/export.xml') || f.filename === 'export.xml') ??
     topLevelXml.sort((a, b) => b.uncompressedSize - a.uncompressedSize)[0]
   );
-}
-
-/**
- * export.xml refers to routes as "/workout-routes/route_….gpx" while the zip
- * nests them under the export folder, so match on the last two path parts.
- */
-function routeKey(path: string): string {
-  return path.split('/').slice(-2).join('/');
 }
 
 function normalizePath(p: string): string {

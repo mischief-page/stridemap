@@ -1,5 +1,5 @@
 import { cleanTrack } from './clean';
-import { anchorTrack, compressRadially, extent, fitBounds, quantiles } from './layout';
+import { anchorTrack, compressRadially, extent, fitBounds, MAX_QUANTILE_SAMPLE, quantiles } from './layout';
 import { flatDistance, projectAround, unprojectFrom } from './track';
 import { HeatGrid, paceSeries } from './values';
 import type { ActivityType, Bounds, GeoPoint, LocalTrack, Track, Workout } from './types';
@@ -239,7 +239,7 @@ function colorDomain(tracks: LocalTrack[], mode: ColorMode): [number, number] {
   // Gather an even sample of values rather than all of them (there can be millions).
   const total = tracks.reduce((n, t) => n + t.value.length, 0);
   if (total === 0) return [0, 1];
-  const stride = Math.max(1, Math.floor(total / 200_000));
+  const stride = Math.max(1, Math.floor(total / MAX_QUANTILE_SAMPLE));
   const sample: number[] = [];
   let i = 0;
   for (const t of tracks) {
