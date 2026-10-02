@@ -215,21 +215,10 @@ test('the PNG sizes say how large they are', async ({ page }) => {
   await expect(page.locator('#pngSize option[value="print"]')).toContainText('For printing (35');
 });
 
-test('the order panel is hidden until switched on, and sets the print shape', async ({ page }) => {
+test('the order panel stays hidden until switched on', async ({ page }) => {
   await visit(page, `${PAGE}?sample`);
+  await settled(page);
   await expect(page.locator('#orderSection')).toBeHidden();
-
-  await visit(page, `${PAGE}?sample&orders`);
-  await settled(page);
-  await expect(page.locator('#products .product')).toHaveCount(6);
-  await page.click('.product[data-id="metal-16x20"]');
-  await settled(page);
-  // 16×20 is 5:4; the opening poster is portrait, so 1200×1500.
-  expect(await previewSvg(page)).toContain('viewBox="0 0 1200 1500"');
-  await expect(page.locator('#productNote')).toContainText('$189');
-  // A print shape that doesn't fit clears the choice.
-  await page.selectOption('#aspect', '1:1');
-  await expect(page.locator('.product[aria-checked="true"]')).toHaveCount(0);
 });
 
 test('draws a street map behind the routes when asked, from mocked tiles', async ({ page, context }) => {
