@@ -320,6 +320,8 @@ test('orders a print: product, close-up, room scenes, checkout (fake shop)', asy
   await context.route('https://checkout.stripe.com/**', (route) => route.fulfill({ body: '<h1>Stripe Checkout</h1>', contentType: 'text/html' }));
 
   await page.goto(`${PAGE}?sample&orders`);
+  // Nothing can be clicked before there's a preview to act on.
+  expect(await page.locator('#checkout').isDisabled()).toBe(true);
   await settled(page);
   await expect(page.locator('#orderSection')).toBeVisible();
   // Framed is the starting kind; the middle size (18×24) is chosen, with frame colors.
