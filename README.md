@@ -77,17 +77,13 @@ npm run deploy       # builds and publishes
 
 Configuration is in `wrangler.jsonc`; security headers are in `public/_headers`.
 
-## Print proofs (Prodigi)
+## Prints
 
-Settings live in `.env.local` (never committed): `PRODIGI_API_KEY` and `PRODIGI_API_URL` for Prodigi's free test environment (the default), `PRODIGI_LIVE_API_KEY` and `PRODIGI_LIVE_API_URL` for real orders (`--live`), `R2_BUCKET`, `R2_PUBLIC_URL`, and the recipient (`PRINT_TO_NAME`, `PRINT_TO_LINE1`, `PRINT_TO_CITY`, `PRINT_TO_STATE`, `PRINT_TO_ZIP`, optional `PRINT_TO_EMAIL`, `PRINT_TO_LINE2`).
+Prints are ordered through the private print shop service (Stripe Checkout, fulfilled by Printful); the page's order panel (still behind `?orders` until launch) talks to it. To check how a print will look:
 
 ```sh
-npm run print-file -- --preset ember --sku GLOBAL-FAP-18X24     # 300 DPI print file in out/print/ (takes every CLI option too)
-npm run print-order -- --file out/print/ember-GLOBAL-FAP-18X24.png --sku GLOBAL-FAP-18X24
-npm run print-status -- ord_1175284                                 # production steps, issues, tracking
+npm run print-file -- --preset ember --size 18x24     # 300 DPI print file in out/print/ (takes every CLI option too)
 ```
-
-`print-order` uses the free test environment unless given `--live`; a live order also needs `--confirm-live`, since live orders are charged and shipped. `--image-url` skips the upload and uses an image that's already online.
 
 ## How it works
 

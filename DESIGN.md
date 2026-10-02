@@ -131,6 +131,14 @@ The title also becomes the SVG's `<title>`. All user text is XML-escaped.
 - **Downloads:** PNG for sharing (2× the image) or for printing (as large as browsers reliably draw: about 16.7 million pixels, Safari's canvas limit; the option says how large it prints sharply at 300 ppi), and SVG. Files are named after the title and style, e.g. `my-workouts-afterglow.png`.
 - **Accessibility:** the file input is visually hidden but focusable; the style cards are one radio group (arrow keys move and pick); help text is linked with `aria-describedby`; the preview's alt text names the poster and how many workouts it shows.
 
+## Ordering prints
+Prints are sold through a separate, private print shop service shared by the "Your data is beautiful" visualizations, and made and shipped by Printful. The page's order panel (behind `?orders` until launch):
+- Loads products, sizes, frame options and prices from the shop (`src/web/shop.ts`), so the page never holds costs or supplier details.
+- Draws the poster's **print version** for the chosen product with a one-off engine render: the product's shape, no "made with" mark, and, for magnets, the routes alone (4 inches is too small for text). Notebooks are always upright.
+- Shows an instant, sharp **close-up** of that version as the product, drawn in the page (`src/web/product-preview.ts`): frame color and mat, canvas edge, metal sheen, magnet corners, notebook binding.
+- On request, **room scenes** from Printful: the page composes the whole print area as the shop will print it (artwork in the face, background color in any wrap, bleed or mat margin) and the shop asks Printful for mockups. Printful allows two mockup tasks a minute per store, so the page waits and retries when it's busy.
+- **Checkout** sends the print version to the shop, which opens Stripe Checkout; afterwards the page thanks the buyer with their order number.
+
 ## Performance
 A person's history can be thousands of workouts and millions of GPS points, so:
 - **All heavy work runs in a Web Worker** that holds the workouts. The page only sends settings and receives SVG. While a redraw is running, only the newest settings are kept, so dragging a slider never queues stale frames.

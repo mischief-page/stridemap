@@ -5,8 +5,9 @@ import { createEngine } from './engine';
 import { NO_ROUTES } from './messages';
 import type { MapResult } from './worker';
 import { GEOCODE_ATTRIBUTION, geocode } from '../map/geocode';
-import type { Product } from '../print/catalog';
-import { productCards } from './order-ui';
+import { orderPanel, orderReturnBanner } from './order-ui';
+import type { ShopProduct } from './shop';
+import { ASPECTS, type Aspect } from '../render/canvas';
 import { presetCards } from './presets-ui';
 import { downloadPng, downloadSvg, showPreview } from './preview';
 
@@ -57,6 +58,7 @@ const engine = createEngine({
     void showPreview($('previewImage'), svg, `Poster preview: ${title}, ${shown} workouts`).then((shown) => {
       if (shown && !more) preview.classList.remove('updating');
     });
+    if (!more) orders?.refresh();
   },
   onError(message, during) {
     preview.classList.remove('updating');
@@ -257,31 +259,32 @@ function applyPreset(p: Preset) {
 
 // ── Ordering ──────────────────────────────────────────────────────────────────
 
-// Hidden until checkout works; ?orders shows it for testing.
-$('orderSection').hidden = !new URLSearchParams(location.search).has('orders');
-let chosenProduct: Product | null = null;
-const markProduct = productCards($('products'), chooseProduct);
-
-/** Choosing a print sets the picture to the product's shape. */
-function chooseProduct(p: Product | null) {
-  chosenProduct = p;
-  markProduct(p?.id ?? null);
-  $('productNote').textContent = p
-    ? `${p.name}: $${p.priceUsd}, US shipping included. The picture is set to this print's shape.`
-    : 'Choosing a print sets the picture to its shape. Prints leave off the “made with” mark.';
-  if (p) {
-    writeState({ aspect: p.aspect });
-    render();
-  }
+/** The poster's print version for a product: its shape, no mark, and no text on small products. */
+async function artworkFor(p: ShopProduct): Promise<string> {
+  const s = readState();
+  const aspect = (Object.entries(ASPECTS) as [Aspect, number][]).find(([, ratio]) => Math.abs(ratio - p.shape) < 0.01)![0];
+  const portraitOnly = p.orientations === 'portrait' || aspect === '1:1';
+  const state: EditorState = {
+    ...s,
+    aspect,
+    orientation: portraitOnly ? 'portrait' : s.orientation,
+    mark: false,
+    ...(p.design === 'routes-only' ? { legendShow: false, scale: 'off' as const } : {}),
+  };
+  return (await engine.renderOnce(toRenderRequest(state))).svg;
 }
+
+// Hidden until checkout works end to end; ?orders shows it for testing.
+const ordering = new URLSearchParams(location.search).has('orders');
+$('orderSection').hidden = !ordering;
+const orders = ordering ? orderPanel({ artworkFor }) : null;
+orderReturnBanner();
 
 watchControls($('controls'), (key) => {
   // Changing any part of the look makes the style custom.
   if (lookKeys.has(key)) setActivePreset(null);
   // Typing a title or name means it should be on the poster.
   if ((key === 'title' || key === 'name') && !readState().legendShow) writeState({ legendShow: true });
-  // A different print shape no longer fits the chosen print.
-  if (key === 'aspect' && chosenProduct && readState().aspect !== chosenProduct.aspect) chooseProduct(null);
   render();
 });
 

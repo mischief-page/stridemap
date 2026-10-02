@@ -31,6 +31,9 @@ export function createEngine(handlers: EngineHandlers) {
   let load = 0;
   let file: File | null = null;
   let seq = 0;
+  // One-off drawings (a product's print version), answered by sequence number,
+  // alongside the live preview and without displacing it.
+  const once = new Map<number, { resolve: (r: { svg: string; width: number; height: number }) => void; reject: (e: Error) => void }>();
 
   const start = (req: RenderRequest) => {
     busy = true;
@@ -67,10 +70,20 @@ export function createEngine(handlers: EngineHandlers) {
         if (msg.load === load) handlers.onLoaded(msg);
         break;
       case 'rendered':
+        if (once.has(msg.seq)) {
+          once.get(msg.seq)!.resolve(msg);
+          once.delete(msg.seq);
+          break;
+        }
         handlers.onRendered(msg, pending !== null);
         next();
         break;
       case 'error':
+        if (msg.seq !== undefined && once.has(msg.seq)) {
+          once.get(msg.seq)!.reject(new Error(msg.message));
+          once.delete(msg.seq);
+          break;
+        }
         handlers.onError(msg.message, msg.during);
         if (msg.during === 'render') next();
         break;
@@ -90,6 +103,14 @@ export function createEngine(handlers: EngineHandlers) {
     loadSample() {
       file = null;
       send({ kind: 'load-sample', load: ++load });
+    },
+    /** Draws once, outside the live preview: for a product's print version. */
+    renderOnce(req: RenderRequest): Promise<{ svg: string; width: number; height: number }> {
+      return new Promise((resolve, reject) => {
+        const id = ++seq;
+        once.set(id, { resolve, reject });
+        send({ kind: 'render', seq: id, ...req });
+      });
     },
     render(req: RenderRequest) {
       if (busy) pending = req;

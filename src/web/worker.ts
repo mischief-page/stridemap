@@ -29,7 +29,7 @@ export type EngineMessage =
   | { kind: 'progress'; load: number; progress: Progress }
   | { kind: 'loaded'; load: number; withGps: number; duplicates: number; firstStart: number | null; lastStart: number | null }
   | { kind: 'rendered'; seq: number; svg: string; width: number; height: number; shown: number; withGps: number; map: MapResult | null }
-  | { kind: 'error'; message: string; during: 'load' | 'render' };
+  | { kind: 'error'; message: string; during: 'load' | 'render'; seq?: number };
 
 // Draws from the workouts loaded last (only their prepared form is kept; the
 // raw GPS tracks are freed). Map tiles are kept across data sets.
@@ -113,6 +113,6 @@ self.onmessage = async (event: MessageEvent<EngineRequest>) => {
   } catch (err) {
     // A replaced load's failure (often caused by being replaced) isn't news.
     if (during === 'load' && load !== currentLoad) return;
-    post({ kind: 'error', message: err instanceof Error ? err.message : String(err), during });
+    post({ kind: 'error', message: err instanceof Error ? err.message : String(err), during, seq: req.kind === 'render' ? req.seq : undefined });
   }
 };

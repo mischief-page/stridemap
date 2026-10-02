@@ -20,9 +20,7 @@
     "sample-export": "tsx scripts/make-sample-export.ts",
     "test:e2e": "npm run build:single && playwright test",
     "deploy": "npm run build && wrangler deploy",
-    "print-file": "tsx --env-file=.env.local scripts/print-file.ts",
-    "print-order": "tsx --env-file=.env.local scripts/print-order.ts",
-    "print-status": "tsx --env-file=.env.local scripts/print-status.ts"
+    "print-file": "tsx scripts/print-file.ts"
   },
   "dependencies": {
     "@mapbox/vector-tile": "^3.0.0",

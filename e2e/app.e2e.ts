@@ -1,9 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { SAMPLE_EXPORT, SAMPLE_STRAVA } from './global-setup';
 import { makeTile } from '../test/mvt';
 
 const PAGE = `file://${resolve('dist-single/stridemap.html')}`;
+/** A 1×1 PNG, standing in for Printful's room scenes. */
+const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 /** The SVG behind the preview image. */
 const previewSvg = (page: Page) =>
@@ -306,4 +309,65 @@ test('choosing a second export while the first is loading shows only the second'
   await page.waitForTimeout(1500);
   await expect(page.locator('#status')).toContainText('sample-strava.zip: 20 of 20');
   await expect(page.locator('#error')).toBeHidden();
+});
+
+test('orders a print: product, close-up, room scenes, checkout (fake shop)', async ({ page, context }) => {
+  const SHOP = 'https://print-shop.matt-melchiori.workers.dev';
+  const catalog = JSON.parse(readFileSync('e2e/shop-catalog.json', 'utf8'));
+  const sent: { path: string; body: Record<string, string> }[] = [];
+  const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type' };
+  await context.route(`${SHOP}/**`, async (route) => {
+    const req = route.request();
+    const path = new URL(req.url()).pathname;
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    const body = req.postData() ? JSON.parse(req.postData()!) : {};
+    sent.push({ path, body });
+    if (path === '/v1/products') return route.fulfill({ json: catalog, headers: cors });
+    if (path === '/v1/mockups') return route.fulfill({ json: { id: 'm1', status: 'pending', images: [] }, headers: cors });
+    if (path === '/v1/mockups/m1') return route.fulfill({ json: { id: 'm1', status: 'completed', images: [TINY_PNG, TINY_PNG] }, headers: cors });
+    if (path === '/v1/checkout') return route.fulfill({ json: { orderId: 'ord_test', checkoutUrl: 'https://checkout.stripe.com/c/pay/test' }, headers: cors });
+    return route.fulfill({ status: 404, headers: cors });
+  });
+  await context.route('https://checkout.stripe.com/**', (route) => route.fulfill({ body: '<h1>Stripe Checkout</h1>', contentType: 'text/html' }));
+
+  await page.goto(`${PAGE}?sample&orders`);
+  await settled(page);
+  await expect(page.locator('#orderSection')).toBeVisible();
+  // Framed is the starting kind; the middle size (18×24) is chosen, with frame colors.
+  await expect(page.locator('#productKinds [aria-checked="true"]')).toHaveText('Framed');
+  await expect(page.locator('#productPrice')).toHaveText('$109');
+  await expect(page.locator('#productOptionField')).toBeVisible();
+  await expect(page.locator('#checkout')).toBeEnabled();
+
+  // A magnet: square, routes only, no frame choice.
+  await page.click('#productKinds button:has-text("Magnet")');
+  await expect(page.locator('#productPrice')).toHaveText('$15');
+  await expect(page.locator('#productOptionField')).toBeHidden();
+  await expect(page.locator('#checkout')).toBeEnabled();
+
+  // Room scenes come back from the shop and are shown.
+  await page.click('#productKinds button:has-text("Canvas")');
+  await expect(page.locator('#roomScenes')).toBeEnabled();
+  await page.click('#roomScenes');
+  await expect(page.locator('#roomImages img')).toHaveCount(2, { timeout: 15_000 });
+  const mockup = sent.find((s) => s.path === '/v1/mockups')!.body;
+  expect(mockup).toMatchObject({ app: 'stridemap', productId: 'canvas-18x24', optionId: 'standard' });
+  expect(mockup.image).toMatch(/^data:image\/png;base64,/);
+
+  // Checkout sends the print version (its shape, no mark) and goes to Stripe.
+  await page.click('#productKinds button:has-text("Magnet")');
+  await expect(page.locator('#checkout')).toBeEnabled();
+  await page.click('#checkout');
+  await page.waitForURL('https://checkout.stripe.com/**');
+  const order = sent.find((s) => s.path === '/v1/checkout')!.body;
+  expect(order).toMatchObject({ app: 'stridemap', productId: 'magnet-4x4', optionId: 'standard' });
+  expect(order.svg).toContain('viewBox="0 0 1200 1200"');
+  expect(order.svg).not.toContain('made with');
+  expect(order.svg).not.toContain('class="legend"');
+});
+
+test('coming back from checkout says thanks with the order number', async ({ page }) => {
+  await page.goto(`${PAGE}?sample&order=ord_abc123`);
+  await expect(page.locator('#orderBanner')).toContainText('ord_abc123');
+  expect(page.url()).not.toContain('order=');
 });

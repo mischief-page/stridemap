@@ -14,6 +14,7 @@
       <p>Every walk and run, starting from the same point. Your data stays in this browser.</p>
     </header>
 
+    <div id="orderBanner" class="banner" role="status" hidden></div>
     <main>
       <aside id="controls">
         <section id="dataSection">
@@ -290,9 +291,20 @@
         <!-- Hidden until checkout works; ?orders shows it for testing. -->
         <section id="orderSection" hidden>
           <h2>Order a print</h2>
-          <div class="products" id="products" role="radiogroup" aria-label="Print product"></div>
-          <small id="productNote">Choosing a print sets the picture to its shape. Prints leave off the “made with” mark.</small>
-          <button type="button" id="checkout" class="primary" disabled>Checkout opens soon</button>
+          <div class="kinds" id="productKinds" role="radiogroup" aria-label="Product"></div>
+          <div class="row">
+            <label>Size <select id="productSize"></select></label>
+            <label id="productOptionField">Frame <select id="productOption"></select></label>
+          </div>
+          <p class="price-line"><strong id="productPrice"></strong> <small id="productShipping">US shipping included</small></p>
+          <small id="productDescription"></small>
+          <canvas id="productPreview" class="product-preview" role="img" aria-label="Your poster as the chosen product"></canvas>
+          <button type="button" id="roomScenes" class="small">See it in a room</button>
+          <p id="roomStatus" class="info" role="status"></p>
+          <div id="roomImages" class="room-images"></div>
+          <button type="button" id="checkout" class="primary">Checkout</button>
+          <p id="orderError" class="error" role="alert" hidden></p>
+          <small>Made and shipped by Printful. Prints leave off the “made with” mark.</small>
         </section>
       </aside>
 

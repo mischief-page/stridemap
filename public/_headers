@@ -3,7 +3,7 @@
 # styles from itself only, the parser worker and preview images as blob: URLs,
 # no framing by other sites, and no camera, microphone or location access.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self' blob:; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: https://tiles.openfreemap.org https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self' blob:; img-src 'self' blob: data: https://printful-upload.s3-accelerate.amazonaws.com; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://print-shop.matt-melchiori.workers.dev; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
