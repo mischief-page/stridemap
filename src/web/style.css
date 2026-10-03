@@ -474,3 +474,5 @@ label small { display: inline; }
   font-size: 0.9rem;
 }
 @media (max-width: 800px) { .banner { margin: 0 16px 8px; } }
+
+.details-link { display: inline-block; margin-top: 4px; font-size: 0.85rem; color: var(--accent); }

@@ -73,6 +73,7 @@ export const FLAGS: Record<string, Flag> = {
   name: str('name'),
   units: oneOf('units', UNITS, 'units'),
   'no-mark': { type: 'boolean', apply: (v, s) => void (s.mark = !v) },
+  'no-legend': { type: 'boolean', apply: (v, s) => void (s.legendShow = !v) },
   mode: oneOf('colorMode', COLOR_MODES, 'mode'),
   fit: num('fit', 50, 100, 'fit'),
   squash: num('squash', 0.3, 1, 'squash'),

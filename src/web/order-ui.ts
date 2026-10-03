@@ -23,6 +23,9 @@ export interface OrderPanelDeps {
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/** "Framed poster with mat, 18×24 in" → "18×24 in with mat". */
+const sizeLabel = (p: ShopProduct) => p.name.replace(/^[^,]+, /, '') + (/ with mat/.test(p.name) ? ' with mat' : '');
+
 export function orderPanel(deps: OrderPanelDeps): { refresh(): void } {
   const kinds = $('productKinds');
   const sizeSelect = $<HTMLSelectElement>('productSize');
@@ -69,7 +72,7 @@ export function orderPanel(deps: OrderPanelDeps): { refresh(): void } {
   function buildSizes() {
     const sizes = catalog.filter((p) => p.kind === kind);
     sizeSelect.replaceChildren(
-      ...sizes.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: `${p.name.replace(/^[^,]+, /, '')} — $${p.priceUsd}` })),
+      ...sizes.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: `${sizeLabel(p)} — $${p.priceUsd}` })),
     );
     // Default to the middle size, the most common poster size.
     sizeSelect.selectedIndex = Math.min(1, sizes.length - 1);
@@ -89,6 +92,7 @@ export function orderPanel(deps: OrderPanelDeps): { refresh(): void } {
     const mine = ++generation;
     showError(null);
     $('productPrice').textContent = `$${p.priceUsd}`;
+    $<HTMLAnchorElement>('productDetails').href = `products.html#${p.kind}`;
     $('productDescription').textContent = p.description;
     roomImages.replaceChildren();
     roomStatus.textContent = '';

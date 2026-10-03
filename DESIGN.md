@@ -137,6 +137,7 @@ Prints are sold through a separate, private print shop service shared by the "Yo
 - Draws the poster's **print version** for the chosen product with a one-off engine render: the product's shape, no "made with" mark, and, for magnets, the routes alone (4 inches is too small for text). Notebooks are always upright.
 - Shows an instant, sharp **close-up** of that version as the product, drawn in the page (`src/web/product-preview.ts`): frame color and mat, canvas edge, metal sheen, magnet corners, notebook binding.
 - On request, **room scenes** from Printful: the page composes the whole print area as the shop will print it (artwork in the face, background color in any wrap, bleed or mat margin) and the shop asks Printful for mockups. Printful allows two mockup tasks a minute per store, so the page waits and retries when it's busy.
+- **Prints & products page** (`public/products.html`): photos of every product made by Printful's mockup generator from sample stridemap posters (a different style per product), with materials, sizes, live prices from the shop, making and shipping times. Linked from the order panel (opening the type being viewed) and the footer.
 - **Checkout** sends the print version to the shop, which opens Stripe Checkout; afterwards the page thanks the buyer with their order number.
 
 ## Performance

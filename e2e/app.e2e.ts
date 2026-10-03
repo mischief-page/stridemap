@@ -330,6 +330,8 @@ test('orders a print: product, close-up, room scenes, checkout (fake shop)', asy
   await expect(page.locator('#productOptionField')).toBeVisible();
   await expect(page.locator('#checkout')).toBeEnabled();
 
+  // Photos and specs for the product type being looked at.
+  await expect(page.locator('#productDetails')).toHaveAttribute('href', 'products.html#framed');
   // A magnet: square, routes only, no frame choice.
   await page.click('#productKinds button:has-text("Magnet")');
   await expect(page.locator('#productPrice')).toHaveText('$15');

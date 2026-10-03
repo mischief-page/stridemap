@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prints &amp; products · stridemap</title>
+    <meta name="description" content="Posters, framed prints, canvas, metal prints, magnets and notebooks of your walks and runs: photos, materials, sizes and prices." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f19'/><g stroke-linecap='round' fill='none'><path d='M16 16L16 4M16 16L27 10M16 16L26 24M16 16L9 27M16 16L4 13' stroke='%231d4ed8' stroke-width='2'/><path d='M16 16L16 9M16 16L22 13M16 16L21 21M16 16L12 22M16 16L9 14' stroke='%23fbbf24' stroke-width='2.5'/></g></svg>" />
+    <style>
+      :root {
+        --bg: #f6f5f2; --panel: #ffffff; --text: #1c1b19; --muted: #6b6760; --line: #e2dfd8; --accent: #1d4ed8;
+        color-scheme: light dark;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0e1016; --panel: #161923; --text: #e8e6e1; --muted: #9a968d; --line: #2a2e3a; --accent: #7aa2ff; }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.55; }
+      main { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
+      h1 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 4px; }
+      h2 { font-size: 1.3rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+      h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 14px 0 4px; }
+      p, li { margin: 4px 0; }
+      ul { padding-left: 18px; }
+      a { color: var(--accent); }
+      .lead { font-size: 1.05rem; max-width: 46em; }
+      .muted { color: var(--muted); font-size: 0.9rem; }
+      nav.jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 24px; }
+      nav.jump a { padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--text); background: var(--panel); font-size: 0.9rem; }
+      section.product { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 0 0 20px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; scroll-margin-top: 16px; }
+      .gallery img.main { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; display: block; background: var(--bg); }
+      .thumbs { display: flex; gap: 6px; margin-top: 6px; }
+      .thumbs button { padding: 0; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; width: 64px; }
+      .thumbs button[aria-pressed='true'] { border-color: var(--accent); }
+      .thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; display: block; }
+      .sizes { list-style: none; padding: 0; }
+      .sizes li { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+      .sizes .price { font-variant-numeric: tabular-nums; font-weight: 600; }
+      .note { font-size: 0.85rem; color: var(--muted); }
+      .order { display: inline-block; margin-top: 12px; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: var(--bg); text-decoration: none; font-weight: 600; }
+      .box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 20px 14px; }
+      @media (max-width: 760px) { section.product { grid-template-columns: minmax(0, 1fr); } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p><a href="./">← Back to stridemap</a></p>
+      <h1>Prints &amp; products</h1>
+      <p class="lead">Every product is made to order with your own design, then printed and shipped by <a href="https://www.printful.com">Printful</a>. The photos below show sample designs made with stridemap; yours will show your own routes. Prices include shipping within the US.</p>
+      <nav class="jump" aria-label="Products">
+        <a href="#poster">Posters</a><a href="#framed">Framed posters</a><a href="#canvas">Canvas</a><a href="#metal">Metal prints</a><a href="#magnet">Magnets</a><a href="#notebook">Notebooks</a>
+      </nav>
+
+      <section class="product" id="poster">
+        <div class="gallery" data-photos="poster-1 poster-2 poster-3 poster-4" data-alt="Poster"></div>
+        <div>
+          <h2>Poster</h2>
+          <p>Museum-quality print on thick, smooth matte paper. Fine route lines stay crisp, and there's no glare.</p>
+          <h3>Sizes</h3>
+          <ul class="sizes" data-kind="poster"><li>12×18 in</li><li>18×24 in</li><li>24×36 in</li></ul>
+          <h3>Materials</h3>
+          <ul>
+            <li>Enhanced matte paper, 189 g/m², 10.3 mil (0.26 mm) thick</li>
+            <li>94% opacity, ISO brightness 104%; paper made in Japan</li>
+            <li>Unframed: fits standard 12×18, 18×24 and 24×36 in frames</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="product" id="framed">
+        <div class="gallery" data-photos="framed-1 framed-2 framed-3 framed-4 mat-1 mat-2" data-alt="Framed poster"></div>
+        <div>
+          <h2>Framed poster</h2>
+          <p>The same matte poster in a solid wood frame, ready to hang. Choose black or white, or add a white mat (black, white or red oak frame) for a gallery look.</p>
+          <h3>Sizes</h3>
+          <ul class="sizes" data-kind="framed"><li>12×18 in</li><li>18×24 in</li><li>18×24 in with mat</li><li>24×36 in</li></ul>
+          <h3>Materials</h3>
+          <ul>
+            <li>Ayous wood frame from renewable forests, .75″ (1.9 cm) thick</li>
+            <li>Acrylic (Acrylite) front: lighter and safer than glass</li>
+            <li>Enhanced matte paper, 189 g/m²</li>
+            <li>Hanging hardware included; hangs upright or sideways</li>
+          </ul>
+          <p class="note">With a mat, the design is placed fully inside the mat's window, so nothing is hidden.</p>
+        </div>
+      </section>
+
+      <section class="product" id="canvas">
+        <div class="gallery" data-photos="canvas-1 canvas-2 canvas-3 canvas-4" data-alt="Canvas"></div>
+        <div>
+          <h2>Canvas</h2>
+          <p>A gallery-wrapped canvas with a soft woven texture, stretched over a deep wooden frame. No frame needed.</p>
+          <h3>Sizes</h3>
+          <ul class="sizes" data-kind="canvas"><li>12×18 in</li><li>18×24 in</li><li>24×36 in</li></ul>
+          <h3>Materials</h3>
+          <ul>
+            <li>Poly-cotton canvas, 344 g/m², fade-resistant</li>
+            <li>Hand-stretched over solid wood bars, 1.25″ (3.18 cm) deep</li>
+            <li>Mounting brackets included</li>
+          </ul>
+          <p class="note">The canvas wraps around its frame. The design stays on the front; the sides are your poster's background color.</p>
+        </div>
+      </section>
+
+      <section class="product" id="metal">
+        <div class="gallery" data-photos="metal-1 metal-2 metal-3 metal-4" data-alt="Metal print"></div>
+        <div>
+          <h2>Metal print</h2>
+          <p>Printed into glossy aluminum, so colors glow, which suits the dark styles best. It floats half an inch off the wall.</p>
+          <h3>Sizes</h3>
+          <ul class="sizes" data-kind="metal"><li>8×10 in</li><li>16×20 in</li></ul>
+          <h3>Materials</h3>
+          <ul>
+            <li>Glossy aluminum surface, scratch and fade resistant</li>
+            <li>MDF wood frame on the back holds it ½″ off the wall</li>
+            <li>Hangs upright or sideways; wipes clean</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="product" id="magnet">
+        <div class="gallery" data-photos="magnet-1 magnet-2 magnet-3 magnet-4" data-alt="Magnet"></div>
+        <div>
+          <h2>Magnet</h2>
+          <p>A small square of your routes for the fridge or a whiteboard. At this size text would be too small to read, so magnets show the routes alone, without the title or totals.</p>
+          <h3>Size</h3>
+          <ul class="sizes" data-kind="magnet"><li>4×4 in</li></ul>
+          <h3>Materials</h3>
+          <ul>
+            <li>Flexible vinyl, 0.5 mm, premium matte finish</li>
+            <li>Strong black magnetic backing</li>
+            <li>Die-cut with a thin white edge</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="product" id="notebook">
+        <div class="gallery" data-photos="notebook-1 notebook-2 notebook-3" data-alt="Spiral notebook"></div>
+        <div>
+          <h2>Spiral notebook</h2>
+          <p>Your poster on the cover of a notebook for training logs and race plans.</p>
+          <h3>Size</h3>
+          <ul class="sizes" data-kind="notebook"><li>5.5×8.5 in</li></ul>
+          <h3>Materials</h3>
+          <ul>
+            <li>Soft-touch cover, 352 g/m²</li>
+            <li>140 dotted pages, 89 g/m²</li>
+            <li>Metal wire-o binding; upright designs only</li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="box">
+        <h2 style="margin-top: 12px">Making and shipping</h2>
+        <ul>
+          <li>Each order is made for you, usually within 2–5 business days, then shipped within the US. Most orders arrive within about two weeks of ordering.</li>
+          <li>You'll get a receipt by email when you pay, and tracking by email from Printful when it ships.</li>
+          <li>Prints leave off the small “made with stridemap” mark.</li>
+          <li>Since everything is made to order with your design, we can't take returns for a change of mind. If something arrives damaged or misprinted, contact us within 30 days of delivery and we'll replace it.</li>
+        </ul>
+        <p class="muted">Questions? Open an issue on <a href="https://github.com/mischief-page/stridemap/issues">GitHub</a>.</p>
+      </div>
+    </main>
+    <script src="products.js"></script>
+  </body>
+</html>
