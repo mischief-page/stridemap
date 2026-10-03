@@ -13,6 +13,7 @@ const KIND_LABELS: Record<ProductKind, string> = {
   canvas: 'Canvas',
   metal: 'Metal',
   magnet: 'Magnet',
+  coaster: 'Coasters',
   notebook: 'Notebook',
 };
 

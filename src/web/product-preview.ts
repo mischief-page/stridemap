@@ -184,6 +184,36 @@ export function drawCloseUp(canvas: HTMLCanvasElement, p: ShopProduct, optionId:
       ctx.restore();
       break;
     }
+    case 'coaster': {
+      // The set of four, slightly overlapping, each glossy with rounded corners.
+      const side = Math.min(ow, oh) * 0.48;
+      const r = side * 0.08;
+      const step = side * 1.06;
+      // A loose 2×2, centered, each a little out of line.
+      const x0 = size / 2 - (side + step) / 2;
+      const y0 = size / 2 - (side + step) / 2;
+      const spots: [number, number][] = [[0, 0], [1, 0.05], [0.03, 1], [1.02, 0.97]];
+      for (const [fx, fy] of spots) {
+        const x = x0 + fx * step;
+        const y = y0 + fy * step;
+        shadow(size * 0.025, size * 0.01, 0.3, () => {
+          ctx.fillStyle = background;
+          roundRect(x, y, side, side, r);
+          ctx.fill();
+        });
+        ctx.save();
+        roundRect(x, y, side, side, r);
+        ctx.clip();
+        drawContained(ctx, img, x, y, side, side);
+        const gloss = ctx.createLinearGradient(x, y, x + side, y + side);
+        gloss.addColorStop(0, 'rgba(255,255,255,0.25)');
+        gloss.addColorStop(0.4, 'rgba(255,255,255,0.02)');
+        ctx.fillStyle = gloss;
+        ctx.fillRect(x, y, side, side);
+        ctx.restore();
+      }
+      break;
+    }
     case 'notebook': {
       const r = ow * 0.025;
       shadow(size * 0.03, size * 0.015, 0.3, () => {

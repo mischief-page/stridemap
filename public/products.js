@@ -35,7 +35,7 @@
           ...items.map((p) => {
             const li = document.createElement('li');
             // "Framed poster with mat, 18×24 in" → "18×24 in with mat".
-            const size = p.name.replace(/^[^,]+, /, '') + (/ with mat/.test(p.name) ? ' with mat' : '');
+            const size = p.name.replace(/^[^,]+, /, '') + (/ with mat/.test(p.name) ? ' with mat' : '') + (p.kind === 'coaster' ? ', each 3.74×3.74 in' : '');
             const options = p.options.length > 1 ? ` (${p.options.map((o) => o.label.replace(/ frame$/, '').toLowerCase()).join(', ')})` : '';
             li.append(Object.assign(document.createElement('span'), { textContent: size + options }), Object.assign(document.createElement('span'), { className: 'price', textContent: `$${p.priceUsd}` }));
             return li;

@@ -338,6 +338,11 @@ test('orders a print: product, close-up, room scenes, checkout (fake shop)', asy
   await expect(page.locator('#productOptionField')).toBeHidden();
   await expect(page.locator('#checkout')).toBeEnabled();
 
+  // Coasters come as a set of four, routes only.
+  await page.click('#productKinds button:has-text("Coasters")');
+  await expect(page.locator('#productPrice')).toHaveText('$39');
+  await expect(page.locator('#checkout')).toBeEnabled();
+
   // Room scenes come back from the shop and are shown.
   await page.click('#productKinds button:has-text("Canvas")');
   await expect(page.locator('#roomScenes')).toBeEnabled();

@@ -6,7 +6,7 @@
 export const SHOP_URL = 'https://print-shop.matt-melchiori.workers.dev';
 const APP = 'stridemap';
 
-export type ProductKind = 'poster' | 'framed' | 'canvas' | 'metal' | 'magnet' | 'notebook';
+export type ProductKind = 'poster' | 'framed' | 'canvas' | 'metal' | 'magnet' | 'coaster' | 'notebook';
 
 export interface ShopProduct {
   id: string;
